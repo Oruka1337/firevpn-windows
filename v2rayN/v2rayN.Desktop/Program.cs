@@ -25,6 +25,12 @@ internal class Program
 
     private static bool OnStartup(string[]? Args)
     {
+        // FireVPN: запуск по ссылке firevpn://install-sub?url=... — первая копия заберёт её из файла
+        if ((Args ?? []).Select(FireVpn.ParseLink).FirstOrDefault(t => t != null) is { } link)
+        {
+            FireVpn.SavePendingImport(link);
+        }
+
         if (Utils.IsWindows())
         {
             var exePathKey = Utils.GetMd5(Utils.GetExePath());

@@ -69,7 +69,9 @@ public class TaskManager
             }
 
             //Execute once 24 hour
-            if (numOfExecuted % 1440 == 1)
+            // FireVPN: ядра (Xray, sing-box) приходят вместе с новой версией FireVPN с нашего сайта — ежедневное
+            // «Доступна новая версия Xray…» от v2rayN только путает; проверить можно вручную в расширенном режиме
+            if (!FireVpn.IsFireVpn && numOfExecuted % 1440 == 1)
             {
                 try
                 {

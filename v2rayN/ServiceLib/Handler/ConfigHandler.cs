@@ -33,6 +33,8 @@ public static class ConfigHandler
             }
         }
 
+        // FireVPN: первый запуск (настроек ещё нет) — свои значения по умолчанию ниже
+        var firstRun = config == null;
         config ??= new Config();
 
         config.CoreBasicItem ??= new()
@@ -102,6 +104,10 @@ public static class ConfigHandler
         config.MsgUIItem ??= new();
 
         config.UiItem ??= new();
+        if (firstRun)
+        {
+            config.UiItem.MacOSShowInDock = true;  // FireVPN на Маке — обычное приложение со значком в Доке
+        }
         config.UiItem.MainColumnItem ??= [];
         config.UiItem.WindowSizeItem ??= [];
 

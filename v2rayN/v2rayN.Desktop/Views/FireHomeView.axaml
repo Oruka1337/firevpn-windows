@@ -1,0 +1,838 @@
+<UserControl
+    x:Class="v2rayN.Desktop.Views.FireHomeView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:v2rayN.Desktop.Views"
+    Foreground="White">
+    <!--  FireVPN: минималистичный главный экран (как в версии для Windows). Выключено — Фаер за решёткой,
+          включено — на свободе. Значки нарисованы путями: шрифта значков Windows на Маке нет.  -->
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="FireBg" Color="#100C0C" />
+        <SolidColorBrush x:Key="FireCard" Color="#1C1717" />
+        <SolidColorBrush x:Key="FireCardHover" Color="#262020" />
+        <SolidColorBrush x:Key="FireMuted" Color="#A89C9A" />
+        <SolidColorBrush x:Key="FireDim" Color="#6E6362" />
+        <SolidColorBrush x:Key="FireAccent" Color="#FF7A1A" />
+        <SolidColorBrush x:Key="FireRingOff" Color="#3A3333" />
+        <LinearGradientBrush x:Key="FireFill" StartPoint="0%,0%" EndPoint="100%,100%">
+            <GradientStop Offset="0" Color="#FFB13B" />
+            <GradientStop Offset="0.5" Color="#FF6A1A" />
+            <GradientStop Offset="1" Color="#E8283C" />
+        </LinearGradientBrush>
+
+        <!--  значки (24×24, рисуются линией)  -->
+        <StreamGeometry x:Key="IcoSettings">M4,7 H20 M4,12 H20 M4,17 H20 M9,5 V9 M15,10 V14 M7,15 V19</StreamGeometry>
+        <StreamGeometry x:Key="IcoChevron">M9,5 L16,12 L9,19</StreamGeometry>
+        <StreamGeometry x:Key="IcoBack">M20,12 H5 M11,5 L4,12 L11,19</StreamGeometry>
+        <StreamGeometry x:Key="IcoRefresh">M19.5,12 A7.5,7.5 0 1 1 17.3,6.7 M19.5,3.5 V7.5 H15.5</StreamGeometry>
+        <StreamGeometry x:Key="IcoBolt">M13,2 L4,14 H11 L10,22 L20,9 H13 Z</StreamGeometry>
+        <StreamGeometry x:Key="IcoShield">M12,2.5 L19.5,5.5 V11 C19.5,15.8 16.2,19.8 12,21.5 C7.8,19.8 4.5,15.8 4.5,11 V5.5 Z M8.5,12 L11,14.5 L15.5,9.5</StreamGeometry>
+        <StreamGeometry x:Key="IcoGlobe">M12,3 A9,9 0 1 0 12.01,3 Z M3,12 H21 M12,3 C8.5,7 8.5,17 12,21 M12,3 C15.5,7 15.5,17 12,21</StreamGeometry>
+        <StreamGeometry x:Key="IcoLock">M7.5,11 V8 A4.5,4.5 0 0 1 16.5,8 V11 M5,11 H19 V21 H5 Z M12,15 V17.5</StreamGeometry>
+        <StreamGeometry x:Key="IcoKey">M8,15.5 A3.5,3.5 0 1 1 8.01,15.5 M10.5,13 L20,3.5 M16.5,7 L19,9.5 M14.5,9 L16.5,11</StreamGeometry>
+
+        <!--  круглый флаг (рисуется в FireFlags; нет флага — две буквы страны)  -->
+        <DataTemplate x:Key="FlagCircle" x:DataType="local:FireServerItem">
+            <Viewbox>
+                <Grid Width="60" Height="60">
+                    <Border
+                        Background="#2C2525"
+                        ClipToBounds="True"
+                        CornerRadius="30">
+                        <Panel>
+                            <TextBlock
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                FontSize="20"
+                                FontWeight="Bold"
+                                Foreground="{StaticResource FireMuted}"
+                                Text="{Binding CodeText}" />
+                            <Image
+                                Width="60"
+                                Height="60"
+                                Source="{Binding Flag}"
+                                Stretch="UniformToFill" />
+                        </Panel>
+                    </Border>
+                    <Ellipse Stroke="#40FFFFFF" StrokeThickness="1.5" />
+                </Grid>
+            </Viewbox>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="PathIcon.ico">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+        </Style>
+        <Style Selector="Path.ico">
+            <Setter Property="Stroke" Value="White" />
+            <Setter Property="StrokeThickness" Value="1.8" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Stretch" Value="Uniform" />
+        </Style>
+
+        <!--  кнопка без оформления  -->
+        <Style Selector="Button.flat">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Padding="{TemplateBinding Padding}" Background="Transparent">
+                        <ContentPresenter
+                            Name="cp"
+                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.icon">
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style Selector="Button.icon:pointerover Path.ico">
+            <Setter Property="Stroke" Value="{StaticResource FireAccent}" />
+        </Style>
+
+        <!--  карточка-кнопка; класс selected — оранжевая рамка  -->
+        <Style Selector="Button.card">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Name="bd"
+                        Padding="{TemplateBinding Padding}"
+                        Background="{StaticResource FireCard}"
+                        BorderBrush="Transparent"
+                        BorderThickness="1.5"
+                        CornerRadius="16">
+                        <ContentPresenter
+                            Name="cp"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.card:pointerover /template/ Border#bd">
+            <Setter Property="Background" Value="{StaticResource FireCardHover}" />
+        </Style>
+        <Style Selector="Button.card.selected /template/ Border#bd">
+            <Setter Property="BorderBrush" Value="{StaticResource FireAccent}" />
+        </Style>
+
+        <Style Selector="Button.primary">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border
+                        Name="bd"
+                        Background="{StaticResource FireFill}"
+                        CornerRadius="14">
+                        <ContentPresenter
+                            Name="cp"
+                            Margin="14,0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Content="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ Border#bd">
+            <Setter Property="Opacity" Value="0.88" />
+        </Style>
+        <Style Selector="Button.primary:disabled /template/ Border#bd">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+
+        <Style Selector="Button.link">
+            <Setter Property="Foreground" Value="{StaticResource FireAccent}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.link:pointerover">
+            <Setter Property="Foreground" Value="#FFC23D" />
+        </Style>
+
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="2,18,0,8" />
+        </Style>
+        <Style Selector="TextBlock.muted">
+            <Setter Property="Foreground" Value="{StaticResource FireMuted}" />
+        </Style>
+
+        <Style Selector="Path.welcomeIcon">
+            <Setter Property="Stroke" Value="#FF8A2E" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Effect">
+                <DropShadowEffect
+                    BlurRadius="14"
+                    OffsetX="0"
+                    OffsetY="0"
+                    Opacity="0.9"
+                    Color="#FF5A14" />
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Background="{StaticResource FireBg}">
+
+        <!--  огонь на фоне: свечение и летящие вверх угольки  -->
+        <Grid
+            x:Name="fxLayer"
+            ClipToBounds="True"
+            IsHitTestVisible="False">
+            <Rectangle x:Name="bgGlow" Opacity="0">
+                <Rectangle.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Offset="0" Color="#66FF5A14" />
+                        <GradientStop Offset="0.55" Color="#22E8283C" />
+                        <GradientStop Offset="1" Color="#00100C0C" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle x:Name="bgBottom" Opacity="0">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,100%">
+                        <GradientStop Offset="0.55" Color="#00E8283C" />
+                        <GradientStop Offset="1" Color="#55FF4A10" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Canvas x:Name="embers" />
+        </Grid>
+
+        <!--  ================= главный экран =================  -->
+        <Grid
+            x:Name="pageMain"
+            Margin="20,10,20,18"
+            RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+            <DockPanel Margin="0,0,0,12">
+                <Button
+                    x:Name="btnSettings"
+                    Classes="flat icon"
+                    DockPanel.Dock="Right"
+                    ToolTip.Tip="Настройки">
+                    <Path Classes="ico" Data="{StaticResource IcoSettings}" />
+                </Button>
+                <Image
+                    Width="26"
+                    Height="26"
+                    Source="/Assets/firevpn_flame.png" />
+                <TextBlock
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Text="FireVPN" />
+            </DockPanel>
+
+            <!--  новая версия  -->
+            <Border
+                x:Name="bdUpdate"
+                Grid.Row="1"
+                Margin="0,0,0,10"
+                Padding="14,10"
+                Background="{StaticResource FireCard}"
+                BorderBrush="{StaticResource FireAccent}"
+                BorderThickness="1.5"
+                CornerRadius="16"
+                IsVisible="False">
+                <DockPanel>
+                    <Button
+                        x:Name="btnUpdate"
+                        Width="112"
+                        Height="38"
+                        Margin="10,0,0,0"
+                        Classes="primary"
+                        Content="Обновить"
+                        DockPanel.Dock="Right" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="txtUpdateTitle" FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="txtUpdateNotes"
+                            Classes="muted"
+                            FontSize="12"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!--  выбранный сервер  -->
+            <Button
+                x:Name="btnServerCard"
+                Grid.Row="2"
+                Classes="card">
+                <DockPanel>
+                    <Path
+                        Classes="ico"
+                        Width="14"
+                        Height="14"
+                        Data="{StaticResource IcoChevron}"
+                        DockPanel.Dock="Right" />
+                    <ContentControl
+                        x:Name="ccServerFlag"
+                        Width="40"
+                        Height="40"
+                        ContentTemplate="{StaticResource FlagCircle}" />
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock
+                            x:Name="txtServerName"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="Выберите сервер" />
+                        <TextBlock
+                            x:Name="txtServerSub"
+                            Classes="muted"
+                            FontSize="12" />
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+
+            <!--  Фаер: большая круглая кнопка  -->
+            <StackPanel
+                Grid.Row="3"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Grid
+                    Width="300"
+                    Height="300"
+                    HorizontalAlignment="Center">
+                    <Ellipse
+                        x:Name="wave1"
+                        Width="236"
+                        Height="236"
+                        IsHitTestVisible="False"
+                        Opacity="0"
+                        Stroke="#FF7A1A"
+                        StrokeThickness="3" />
+                    <Ellipse
+                        x:Name="wave2"
+                        Width="236"
+                        Height="236"
+                        IsHitTestVisible="False"
+                        Opacity="0"
+                        Stroke="#FFB13B"
+                        StrokeThickness="2" />
+                    <Ellipse x:Name="glow" Opacity="0">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Offset="0.55" Color="#AAFF6A1A" />
+                                <GradientStop Offset="1" Color="#00FF6A1A" />
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <Button
+                        x:Name="btnFire"
+                        Width="236"
+                        Height="236"
+                        Classes="flat"
+                        ToolTip.Tip="Подключить / отключить">
+                        <Grid Width="236" Height="236">
+                            <Ellipse x:Name="elFire">
+                                <Ellipse.Fill>
+                                    <ImageBrush Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <Ellipse
+                                x:Name="elRing"
+                                Stroke="{StaticResource FireRingOff}"
+                                StrokeThickness="5" />
+                            <Canvas
+                                x:Name="comet"
+                                Width="236"
+                                Height="236"
+                                IsHitTestVisible="False"
+                                Opacity="0" />
+                        </Grid>
+                    </Button>
+                </Grid>
+                <TextBlock
+                    x:Name="txtStatus"
+                    Margin="0,2,0,0"
+                    HorizontalAlignment="Center"
+                    Classes="muted"
+                    FontSize="15"
+                    Text="Не подключено" />
+                <TextBlock
+                    x:Name="txtTimer"
+                    HorizontalAlignment="Center"
+                    FontSize="44"
+                    FontWeight="Bold"
+                    IsVisible="False"
+                    Text="00:00:00" />
+                <TextBlock
+                    x:Name="txtHint"
+                    Margin="0,6,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="13"
+                    Foreground="{StaticResource FireDim}"
+                    Text="Нажмите на Фаера, чтобы освободить его" />
+            </StackPanel>
+
+            <!--  быстрый выбор  -->
+            <StackPanel
+                x:Name="spQuick"
+                Grid.Row="4"
+                HorizontalAlignment="Center">
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="6">
+                    <Path
+                        Width="15"
+                        Height="15"
+                        Data="{StaticResource IcoBolt}"
+                        Fill="{StaticResource FireAccent}"
+                        Stretch="Uniform" />
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="Серверы" />
+                </StackPanel>
+                <ItemsControl x:Name="icQuick" Margin="0,10,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="local:FireServerItem">
+                            <Button
+                                Margin="10,0"
+                                VerticalAlignment="Center"
+                                Classes="flat"
+                                Click="Quick_Click"
+                                ToolTip.Tip="{Binding Name}">
+                                <Grid Width="64" Height="64">
+                                    <Ellipse
+                                        Width="62"
+                                        Height="62"
+                                        IsVisible="{Binding IsSelected}"
+                                        Stroke="{StaticResource FireAccent}"
+                                        StrokeThickness="2.5" />
+                                    <ContentControl
+                                        Width="{Binding QuickSize}"
+                                        Height="{Binding QuickSize}"
+                                        Content="{Binding}"
+                                        ContentTemplate="{StaticResource FlagCircle}" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock
+                    x:Name="txtQuickName"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="14"
+                    FontWeight="SemiBold" />
+            </StackPanel>
+        </Grid>
+
+        <!--  ================= стартовый экран (ещё нет подписки) =================  -->
+        <Grid
+            x:Name="pageWelcome"
+            Margin="24,18,24,20"
+            IsVisible="False"
+            RowDefinitions="Auto,*,Auto">
+
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <Image
+                    Width="44"
+                    Height="44"
+                    Source="/Assets/firevpn_flame.png">
+                    <Image.Effect>
+                        <DropShadowEffect
+                            BlurRadius="18"
+                            OffsetX="0"
+                            OffsetY="0"
+                            Opacity="0.8"
+                            Color="#FF6A1A" />
+                    </Image.Effect>
+                </Image>
+                <TextBlock
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="38"
+                    FontWeight="Bold">
+                    <Run Foreground="{StaticResource FireFill}" Text="Fire" /><Run Text="VPN" />
+                </TextBlock>
+            </StackPanel>
+
+            <!--  Фаер в огненном кольце  -->
+            <Grid
+                Grid.Row="1"
+                Width="360"
+                Height="330"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Ellipse Width="330" Height="330">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Offset="0.45" Color="#55FF5A14" />
+                            <GradientStop Offset="1" Color="#00FF5A14" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Ellipse
+                    x:Name="welcomeRing"
+                    Width="270"
+                    Height="270"
+                    Stroke="{StaticResource FireFill}"
+                    StrokeThickness="3">
+                    <Ellipse.Effect>
+                        <DropShadowEffect
+                            BlurRadius="24"
+                            OffsetX="0"
+                            OffsetY="0"
+                            Opacity="1"
+                            Color="#FF6A1A" />
+                    </Ellipse.Effect>
+                </Ellipse>
+                <Image
+                    Width="360"
+                    Height="259"
+                    VerticalAlignment="Bottom"
+                    Source="/Assets/firevpn_hero.jpg"
+                    Stretch="UniformToFill">
+                    <Image.OpacityMask>
+                        <RadialGradientBrush>
+                            <GradientStop Offset="0.5" Color="#FF000000" />
+                            <GradientStop Offset="1" Color="#00000000" />
+                        </RadialGradientBrush>
+                    </Image.OpacityMask>
+                </Image>
+                <Path
+                    Margin="30,46,0,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Classes="welcomeIcon"
+                    Data="{StaticResource IcoShield}" />
+                <Path
+                    Margin="0,46,34,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Classes="welcomeIcon"
+                    Data="{StaticResource IcoGlobe}" />
+                <Path
+                    Margin="0,150,10,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Classes="welcomeIcon"
+                    Data="{StaticResource IcoLock}" />
+            </Grid>
+
+            <StackPanel Grid.Row="2">
+                <TextBlock
+                    FontSize="34"
+                    FontWeight="Bold"
+                    LineHeight="38"
+                    Text="Интернет&#x0a;без границ"
+                    TextAlignment="Center" />
+                <TextBlock
+                    Margin="0,6,0,18"
+                    HorizontalAlignment="Center"
+                    FontSize="15"
+                    Foreground="{StaticResource FireAccent}"
+                    Text="Быстро. Безопасно. Просто." />
+
+                <StackPanel x:Name="spWelcomeStart">
+                    <Button
+                        x:Name="btnStart"
+                        Height="52"
+                        Classes="primary"
+                        Content="Начать"
+                        FontSize="17" />
+                    <Button
+                        x:Name="btnHaveSub"
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        Classes="flat link"
+                        Content="У меня есть подписка" />
+                </StackPanel>
+
+                <StackPanel x:Name="spWelcomePaste" IsVisible="False">
+                    <TextBlock
+                        Margin="0,0,0,12"
+                        Classes="muted"
+                        FontSize="14"
+                        Text="Скопируйте ссылку-подписку в боте («Моя ссылка») или в личном кабинете на сайте и вставьте её сюда."
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="btnWelcomePaste"
+                        Height="52"
+                        Classes="primary"
+                        Content="Вставить ссылку из буфера"
+                        FontSize="16" />
+                    <WrapPanel Margin="0,8,0,0" HorizontalAlignment="Center">
+                        <Button
+                            x:Name="btnWelcomeBot"
+                            Classes="flat link"
+                            Content="Открыть бота" />
+                        <Button
+                            x:Name="btnWelcomeSite"
+                            Classes="flat link"
+                            Content="Личный кабинет" />
+                        <Button
+                            x:Name="btnWelcomeBack"
+                            Classes="flat link"
+                            Content="Назад" />
+                    </WrapPanel>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+
+        <!--  ================= выбор сервера =================  -->
+        <Grid
+            x:Name="pageServers"
+            Margin="16,10,16,16"
+            IsVisible="False"
+            RowDefinitions="Auto,*">
+            <DockPanel Margin="0,0,0,12">
+                <Button
+                    x:Name="btnServersBack"
+                    Classes="flat icon"
+                    DockPanel.Dock="Left">
+                    <Path Classes="ico" Data="{StaticResource IcoBack}" />
+                </Button>
+                <Button
+                    x:Name="btnPing"
+                    Classes="flat icon"
+                    DockPanel.Dock="Right"
+                    ToolTip.Tip="Проверить скорость ответа">
+                    <Path Classes="ico" Data="{StaticResource IcoRefresh}" />
+                </Button>
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="19"
+                    FontWeight="Bold"
+                    Text="Выбор сервера" />
+            </DockPanel>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="icServers">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="local:FireServerItem">
+                            <Button
+                                Margin="0,0,0,10"
+                                Classes="card"
+                                Classes.selected="{Binding IsSelected}"
+                                Click="Server_Click">
+                                <DockPanel>
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        DockPanel.Dock="Right"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="{StaticResource FireAccent}"
+                                        Text="{Binding Ping}" />
+                                    <ContentControl
+                                        Width="38"
+                                        Height="38"
+                                        Content="{Binding}"
+                                        ContentTemplate="{StaticResource FlagCircle}" />
+                                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Text="{Binding Name}" />
+                                        <TextBlock
+                                            Classes="muted"
+                                            FontSize="12"
+                                            Text="{Binding Country}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <!--  ================= настройки =================  -->
+        <Grid
+            x:Name="pageSettings"
+            Margin="16,10,16,0"
+            IsVisible="False"
+            RowDefinitions="Auto,*">
+            <DockPanel Margin="0,0,0,4">
+                <Button
+                    x:Name="btnSettingsBack"
+                    Classes="flat icon"
+                    DockPanel.Dock="Left">
+                    <Path Classes="ico" Data="{StaticResource IcoBack}" />
+                </Button>
+                <Border Width="36" DockPanel.Dock="Right" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="19"
+                    FontWeight="Bold"
+                    Text="Настройки" />
+            </DockPanel>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,0,18">
+                    <TextBlock Classes="section" Text="Подписка" />
+                    <Border
+                        Padding="16,14"
+                        Background="{StaticResource FireCard}"
+                        CornerRadius="16">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button
+                                    x:Name="btnSubRefresh"
+                                    Classes="flat icon"
+                                    DockPanel.Dock="Right"
+                                    ToolTip.Tip="Обновить подписку">
+                                    <Path Classes="ico" Data="{StaticResource IcoRefresh}" />
+                                </Button>
+                                <Path
+                                    Classes="ico"
+                                    Data="{StaticResource IcoKey}"
+                                    Stroke="{StaticResource FireAccent}" />
+                                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock
+                                        x:Name="txtSubTitle"
+                                        FontSize="15"
+                                        FontWeight="Bold"
+                                        Text="FireVPN" />
+                                    <TextBlock
+                                        x:Name="txtSubLeft"
+                                        Classes="muted"
+                                        FontSize="12"
+                                        Text="Нет подписки" />
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock
+                                x:Name="txtTraffic"
+                                Margin="32,6,0,0"
+                                Classes="muted"
+                                FontSize="12" />
+                            <Button
+                                x:Name="btnAddSub"
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Left"
+                                Classes="flat link"
+                                Content="Вставить другую подписку из буфера" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Classes="section" Text="Режим подключения" />
+                    <Button
+                        x:Name="btnModeProxy"
+                        Margin="0,0,0,8"
+                        Classes="card">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="Bold"
+                                Text="Прокси" />
+                            <TextBlock
+                                Classes="muted"
+                                FontSize="12"
+                                Text="Браузеры и большинство программ. Пароль от компьютера не нужен."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="btnModeTun" Classes="card">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="Bold"
+                                Text="Туннель — весь компьютер" />
+                            <TextBlock
+                                x:Name="txtTunHint"
+                                Classes="muted"
+                                FontSize="12"
+                                Text="Игры и все программы. FireVPN попросит пароль от компьютера."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Classes="section" Text="Система" />
+                    <Border
+                        Padding="16,12"
+                        Background="{StaticResource FireCard}"
+                        CornerRadius="16">
+                        <CheckBox x:Name="chkAutoRun" Content="Запускать вместе с системой" />
+                    </Border>
+                    <Button
+                        x:Name="btnAdvanced"
+                        Margin="0,8,0,0"
+                        Classes="card">
+                        <DockPanel>
+                            <Path
+                                Classes="ico"
+                                Width="13"
+                                Height="13"
+                                Data="{StaticResource IcoChevron}"
+                                DockPanel.Dock="Right" />
+                            <TextBlock FontSize="14" Text="Расширенные настройки (v2rayN)" />
+                        </DockPanel>
+                    </Button>
+
+                    <TextBlock Classes="section" Text="Контакты" />
+                    <Button
+                        x:Name="btnSite"
+                        Margin="0,0,0,8"
+                        Classes="card">
+                        <TextBlock FontSize="14" Text="Сайт fire-vpn.online" />
+                    </Button>
+                    <Button
+                        x:Name="btnCabinet"
+                        Margin="0,0,0,8"
+                        Classes="card">
+                        <TextBlock FontSize="14" Text="Личный кабинет" />
+                    </Button>
+                    <Button
+                        x:Name="btnSupport"
+                        Margin="0,0,0,8"
+                        Classes="card">
+                        <TextBlock FontSize="14" Text="Поддержка в Telegram" />
+                    </Button>
+                    <Button x:Name="btnInvite" Classes="card">
+                        <TextBlock FontSize="14" Text="Пригласить друзей — бонусные дни" />
+                    </Button>
+
+                    <TextBlock
+                        x:Name="txtVersion"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Center"
+                        FontSize="11"
+                        Foreground="{StaticResource FireDim}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

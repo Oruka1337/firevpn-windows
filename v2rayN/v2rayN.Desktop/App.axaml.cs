@@ -44,6 +44,21 @@ public partial class App : Application
 
     private void OnMacOSActivated(object? sender, ActivatedEventArgs args)
     {
+        // FireVPN: клик по ссылке firevpn://install-sub?url=... в браузере (схема объявлена в Info.plist)
+        if (args is ProtocolActivatedEventArgs { Kind: ActivationKind.OpenUri } opened
+            && FireVpn.ParseLink(opened.Uri.ToString()) is { } link)
+        {
+            if ((ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is MainWindow w)
+            {
+                Dispatcher.UIThread.Post(async () => await w.ImportFireLink(link));
+            }
+            else
+            {
+                FireVpn.SavePendingImport(link);
+            }
+            return;
+        }
+
         if (args.Kind != ActivationKind.Reopen)
         {
             return;

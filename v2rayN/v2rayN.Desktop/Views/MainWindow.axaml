@@ -8,10 +8,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:resx="clr-namespace:ServiceLib.Resx;assembly=ServiceLib"
     xmlns:vms="clr-namespace:ServiceLib.ViewModels;assembly=ServiceLib"
-    Title="v2rayN"
-    Width="1200"
-    Height="800"
-    MinWidth="600"
+    xmlns:views="clr-namespace:v2rayN.Desktop.Views"
+    Title="FireVPN"
+    Width="440"
+    Height="820"
+    MinWidth="400"
     x:DataType="vms:MainWindowViewModel"
     Design.DataContext="{x:Static dd:DesignData.MainWindow}"
     Icon="/Assets/NotifyIcon1.ico"
@@ -28,10 +29,13 @@
         </Style>
     </Window.Styles>
     <dialogHost:DialogHost CloseOnClickAway="True" DisableOpeningAnimation="True">
+        <Panel>
         <DockPanel>
             <DockPanel Margin="{StaticResource Margin8}" DockPanel.Dock="Top">
                 <ContentControl x:Name="conTheme" DockPanel.Dock="Right" />
                 <Menu Margin="{StaticResource Margin4}">
+                    <!--  FireVPN: назад на простой главный экран  -->
+                    <MenuItem x:Name="menuFireHome" Header="🔥 FireVPN" />
                     <MenuItem Header="{x:Static resx:ResUI.menuServers}">
                         <MenuItem
                             x:Name="menuAddServerViaClipboard"
@@ -166,5 +170,8 @@
                 </Grid>
             </Grid>
         </DockPanel>
+        <!--  FireVPN: простой экран поверх расширенного (тот остаётся живым ради значка в трее)  -->
+        <views:FireHomeView x:Name="fireHome" />
+        </Panel>
     </dialogHost:DialogHost>
 </Window>

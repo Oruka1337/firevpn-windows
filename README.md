@@ -1,4 +1,7 @@
-# FireVPN для Windows
+# FireVPN для Windows и macOS
+
+Версия для Windows — `v2rayN/v2rayN` (WPF), для macOS — `v2rayN/v2rayN.Desktop` (Avalonia; `.dmg` собирает
+GitHub Actions «FireVPN macOS», `scripts/firevpn-macos-package.sh`). Общий код FireVPN — `v2rayN/ServiceLib/Common/FireVpn.cs`.
 
 Клиент VPN-сервиса [FireVPN](https://fire-vpn.online): минималистичный главный экран — сервер, большая кнопка
 с Фаером, таймер, быстрый выбор серверов; в настройках — подписка, режим «Прокси» или «Туннель» (весь компьютер).

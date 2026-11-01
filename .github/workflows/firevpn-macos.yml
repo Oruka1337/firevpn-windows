@@ -1,0 +1,66 @@
+# FireVPN для macOS: сборка FireVPN.app и .dmg (Apple M и Intel) на компьютерах GitHub с macOS.
+# Запуск: вкладка Actions → «FireVPN macOS» → Run workflow (или при пуше в main, если менялся код программы).
+# Готовые .dmg — в артефактах запуска; на сайт их выкладывает my-vpn/deploy/publish-macos.ps1 (репозиторий vpnfire).
+name: FireVPN macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'v2rayN/v2rayN.Desktop/**'
+      - 'v2rayN/ServiceLib/**'
+      - 'scripts/firevpn-macos-package.sh'
+      - '.github/workflows/firevpn-macos.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: FireVPN macOS ${{ matrix.arch }}
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            rid: osx-arm64
+          - arch: '64'
+            rid: osx-x64
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.1xx
+
+      - name: Version
+        id: ver
+        run: echo "version=$(sed -n 's/.*AppVersion = "\([0-9.]*\)".*/\1/p' v2rayN/ServiceLib/Common/FireVpn.cs)" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        working-directory: ./v2rayN
+        run: dotnet publish ./v2rayN.Desktop/v2rayN.Desktop.csproj -c Release -r ${{ matrix.rid }} -p:SelfContained=true -o ../out-${{ matrix.arch }}
+
+      - name: Remove debug symbols
+        run: find out-${{ matrix.arch }} -type f -name '*.pdb' -delete
+
+      - name: Tools
+        run: brew install create-dmg p7zip
+
+      - name: Package
+        run: |
+          chmod +x scripts/firevpn-macos-package.sh
+          scripts/firevpn-macos-package.sh ${{ matrix.arch }} out-${{ matrix.arch }} ${{ steps.ver.outputs.version }}
+
+      - name: Upload dmg
+        uses: actions/upload-artifact@v7
+        with:
+          name: firevpn-macos-${{ matrix.arch }}
+          path: FireVPN-*.dmg
+          if-no-files-found: error

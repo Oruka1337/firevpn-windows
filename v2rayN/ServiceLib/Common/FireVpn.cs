@@ -1,18 +1,27 @@
 using System.Net.Http;
-using System.Text.Json;
 using Microsoft.Win32;
 
-namespace v2rayN.Common;
+namespace ServiceLib.Common;
 
 /// <summary>
-/// FireVPN: наши адреса, сведения о подписке, обновления с сайта, ссылки firevpn://
+/// FireVPN: наши адреса, сведения о подписке, обновления с сайта, ссылки firevpn://.
+/// Общее для версии Windows (WPF) и macOS/Linux (Avalonia).
 /// </summary>
-internal static class FireVpn
+public static class FireVpn
 {
+    // сборка FireVPN (а не исходный v2rayN): отключает лишнее из v2rayN
+    public const bool IsFireVpn = true;
+
     public const string AppVersion = "1.0.2";
     public const string SubName = "FireVPN";
     public const string Site = "https://fire-vpn.online";
-    public const string UpdateUrl = Site + "/download/windows/latest.json";
+    // у каждой системы свой latest.json и свой файл обновления
+    public static string UpdateUrl => Site + (OperatingSystem.IsMacOS() ? "/download/macos/latest.json" : "/download/windows/latest.json");
+
+    private static string UpdateAssetSuffix =>
+        OperatingSystem.IsMacOS()
+            ? (RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "-macos-arm64.dmg" : "-macos-64.dmg")
+            : "-windows-64.zip";
     public const string DownloadPage = Site + "/download/";
     public const string CabinetUrl = Site + "/my/";
     public const string Bot = "https://t.me/VpnFire57_bot";
@@ -196,7 +205,7 @@ internal static class FireVpn
             foreach (var asset in root.GetProperty("assets").EnumerateArray())
             {
                 var name = asset.GetProperty("name").GetString() ?? "";
-                if (name.EndsWith("-windows-64.zip", StringComparison.OrdinalIgnoreCase))
+                if (name.EndsWith(UpdateAssetSuffix, StringComparison.OrdinalIgnoreCase))
                 {
                     return new UpdateInfo(tag, notes, asset.GetProperty("browser_download_url").GetString() ?? "");
                 }
@@ -220,6 +229,12 @@ internal static class FireVpn
             if (!update.Url.StartsWith(Site + "/", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
+            }
+            if (OperatingSystem.IsMacOS())
+            {
+                // на Маке программа лежит в «Программах» внутри .app — новую версию человек ставит из .dmg сам
+                ProcUtils.ProcessStart("open", update.Url);
+                return true;
             }
             var file = Utils.GetTempPath($"FireVPN-{update.Version}-{Utils.GetGuid(false)}.zip");
             using (var resp = await _download.GetAsync(update.Url, HttpCompletionOption.ResponseHeadersRead))
@@ -272,6 +287,10 @@ internal static class FireVpn
     /// </summary>
     public static void RegisterScheme()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;  // на Маке ссылки firevpn:// объявлены в Info.plist
+        }
         try
         {
             var exe = Utils.GetExePath();

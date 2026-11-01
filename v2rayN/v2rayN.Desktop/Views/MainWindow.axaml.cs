@@ -29,6 +29,8 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
         btnNewUpdate.Click += MenuCheckUpdate_Click;
         menuBackupAndRestore.Click += MenuBackupAndRestore_Click;
         menuClose.Click += MenuClose_Click;
+        menuFireHome.Click += (_, _) => SetAdvancedMode(false);
+        fireHome.AdvancedRequested += () => SetAdvancedMode(true);
 
         conTheme.Content ??= new ThemeSettingView();
 
@@ -136,7 +138,7 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
 
         if (Utils.IsWindows())
         {
-            Title = $"{Utils.GetVersion()} - {(Utils.IsAdministrator() ? ResUI.RunAsAdmin : ResUI.NotRunAsAdmin)}";
+            Title = Utils.IsAdministrator() ? "FireVPN — администратор" : "FireVPN";
 
             if (!Design.IsDesignMode)
             {
@@ -146,7 +148,7 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
         }
         else
         {
-            Title = $"{Utils.GetVersion()}";
+            Title = "FireVPN";
             menuAddServerViaScan.IsVisible = false;
         }
 
@@ -162,9 +164,31 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
 
     private void OnProgramStarted(object state, bool timeout)
     {
-        Dispatcher.UIThread.Post(() =>
-                ShowHideWindow(true),
+        Dispatcher.UIThread.Post(async () =>
+            {
+                ShowHideWindow(true);
+                // FireVPN: второй запуск по ссылке firevpn:// оставил её в файле
+                if (FireVpn.TakePendingImport() is { } link)
+                {
+                    await fireHome.ImportLink(link);
+                }
+            },
             DispatcherPriority.Default);
+    }
+
+    /// <summary>
+    /// FireVPN: ссылка firevpn://install-sub?url=... (на Маке её передаёт система при клике в браузере)
+    /// </summary>
+    public async Task ImportFireLink(string link)
+    {
+        if (!fireHome.IsReady)
+        {
+            FireVpn.SavePendingImport(link);  // окно ещё не загрузилось — OnLoaded заберёт ссылку
+            return;
+        }
+        ShowHideWindow(true);
+        SetAdvancedMode(false);
+        await fireHome.ImportLink(link);
     }
 
     private async Task DelegateSnackMsg(string content)
@@ -368,6 +392,54 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
             ShowHideWindow(false);
         }
         RestoreUI();
+
+        // FireVPN: всегда начинаем с простого экрана
+        SetAdvancedMode(false);
+        if (ViewModel != null)
+        {
+            fireHome.Init(ViewModel);
+        }
+        FireVpn.RegisterScheme();
+        if (FireVpn.TakePendingImport() is { } link)
+        {
+            _ = fireHome.ImportLink(link);
+        }
+    }
+
+    private bool _advancedMode;
+
+    /// <summary>
+    /// FireVPN: простой экран (узкое окно) или полный интерфейс v2rayN
+    /// </summary>
+    private void SetAdvancedMode(bool advanced)
+    {
+        if (_advancedMode && !advanced)
+        {
+            ConfigHandler.SaveWindowSizeItem(_config, GetType().Name, Width, Height);
+        }
+        _advancedMode = advanced;
+        fireHome.IsVisible = !advanced;
+
+        var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+        var scaling = screen?.Scaling > 0 ? screen.Scaling : 1.0;
+        var area = screen?.WorkingArea ?? new PixelRect(0, 0, 1280, 800);
+        double width, height;
+        if (advanced)
+        {
+            var size = ConfigHandler.GetWindowSizeItem(_config, GetType().Name);
+            MinWidth = 600;
+            width = Math.Min(size?.Width > 0 ? size.Width : 1200, area.Width / scaling);
+            height = Math.Min(size?.Height > 0 ? size.Height : 800, area.Height / scaling);
+        }
+        else
+        {
+            MinWidth = 400;
+            width = 440;
+            height = Math.Min(820, (area.Height / scaling) - 40);
+        }
+        Width = width;
+        Height = height;
+        Position = new PixelPoint(area.X + (int)((area.Width - (width * scaling)) / 2), area.Y + (int)((area.Height - (height * scaling)) / 2));
     }
 
     private void RestoreUI()
@@ -389,7 +461,10 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
 
     private void StorageUI()
     {
-        ConfigHandler.SaveWindowSizeItem(_config, GetType().Name, Width, Height);
+        if (_advancedMode)
+        {
+            ConfigHandler.SaveWindowSizeItem(_config, GetType().Name, Width, Height);
+        }
 
         if (_config.UiItem.MainGirdOrientation == EGirdOrientation.Horizontal)
         {
