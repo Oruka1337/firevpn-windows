@@ -9,7 +9,7 @@ namespace v2rayN.Common;
 /// </summary>
 internal static class FireVpn
 {
-    public const string AppVersion = "1.0.1";
+    public const string AppVersion = "1.0.2";
     public const string SubName = "FireVPN";
     public const string Site = "https://fire-vpn.online";
     public const string UpdateUrl = Site + "/download/windows/latest.json";

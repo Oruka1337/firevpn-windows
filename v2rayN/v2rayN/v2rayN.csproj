@@ -39,6 +39,7 @@
 		<Resource Include="Resources\firevpn_cage.jpg" />
 		<Resource Include="Resources\firevpn_break.jpg" />
 		<Resource Include="Resources\firevpn_free.jpg" />
+		<Resource Include="Resources\firevpn_hero.jpg" />
 	</ItemGroup>
 
 	<ItemGroup>

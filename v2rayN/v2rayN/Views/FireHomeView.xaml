@@ -133,6 +133,22 @@
             <Setter Property="Margin" Value="2,18,0,8" />
         </Style>
 
+        <Style x:Key="WelcomeIcon" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="30" />
+            <Setter Property="Foreground" Value="#FF8A2E" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect
+                        BlurRadius="14"
+                        Opacity="0.9"
+                        ShadowDepth="0"
+                        Color="#FF5A14" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!--  круглый флаг (рисуется в FireFlags; нет флага — две буквы страны)  -->
         <DataTemplate x:Key="FlagCircle" DataType="{x:Type local:FireServerItem}">
             <Viewbox>
@@ -472,6 +488,164 @@
                     HorizontalAlignment="Center"
                     FontSize="14"
                     FontWeight="SemiBold" />
+            </StackPanel>
+        </Grid>
+
+        <!--  ================= стартовый экран (ещё нет подписки) =================  -->
+        <Grid
+            x:Name="pageWelcome"
+            Margin="24,18,24,20"
+            Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <Image
+                    Width="44"
+                    Height="44"
+                    Source="/Resources/firevpn_flame.png">
+                    <Image.Effect>
+                        <DropShadowEffect
+                            BlurRadius="18"
+                            Opacity="0.8"
+                            ShadowDepth="0"
+                            Color="#FF6A1A" />
+                    </Image.Effect>
+                </Image>
+                <TextBlock
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="38"
+                    FontWeight="Bold">
+                    <Run Foreground="{StaticResource FireFill}" Text="Fire" /><Run Text="VPN" />
+                </TextBlock>
+            </StackPanel>
+
+            <!--  Фаер в огненном кольце  -->
+            <Grid
+                Grid.Row="1"
+                Width="360"
+                Height="330"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Ellipse Width="330" Height="330">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Offset="0.45" Color="#55FF5A14" />
+                            <GradientStop Offset="1" Color="#00FF5A14" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Ellipse
+                    x:Name="welcomeRing"
+                    Width="270"
+                    Height="270"
+                    Stroke="{StaticResource FireFill}"
+                    StrokeThickness="3">
+                    <Ellipse.Effect>
+                        <DropShadowEffect
+                            BlurRadius="24"
+                            Opacity="1"
+                            ShadowDepth="0"
+                            Color="#FF6A1A" />
+                    </Ellipse.Effect>
+                </Ellipse>
+                <Image
+                    Width="360"
+                    Height="259"
+                    VerticalAlignment="Bottom"
+                    Source="/Resources/firevpn_hero.jpg"
+                    Stretch="UniformToFill">
+                    <Image.OpacityMask>
+                        <RadialGradientBrush Center="0.5,0.52" GradientOrigin="0.5,0.52" RadiusX="0.5" RadiusY="0.5">
+                            <GradientStop Offset="0.5" Color="#FF000000" />
+                            <GradientStop Offset="1" Color="#00000000" />
+                        </RadialGradientBrush>
+                    </Image.OpacityMask>
+                </Image>
+                <!--  значки вокруг: защита, весь мир, замок  -->
+                <TextBlock
+                    Margin="30,46,0,0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource WelcomeIcon}"
+                    Text="&#xEA18;" />
+                <TextBlock
+                    Margin="0,46,34,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource WelcomeIcon}"
+                    Text="&#xE774;" />
+                <TextBlock
+                    Margin="0,150,10,0"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Style="{StaticResource WelcomeIcon}"
+                    Text="&#xE72E;" />
+            </Grid>
+
+            <StackPanel Grid.Row="2">
+                <TextBlock
+                    FontSize="34"
+                    FontWeight="Bold"
+                    LineHeight="38"
+                    Text="Интернет&#x0a;без границ"
+                    TextAlignment="Center" />
+                <TextBlock
+                    Margin="0,6,0,18"
+                    HorizontalAlignment="Center"
+                    FontSize="15"
+                    Foreground="{StaticResource FireAccent}"
+                    Text="Быстро. Безопасно. Просто." />
+
+                <!--  шаг 1: новичок или уже с подпиской  -->
+                <StackPanel x:Name="spWelcomeStart">
+                    <Button
+                        x:Name="btnStart"
+                        Height="52"
+                        Content="Начать"
+                        FontSize="17"
+                        Style="{StaticResource Primary}" />
+                    <Button
+                        x:Name="btnHaveSub"
+                        Margin="0,10,0,0"
+                        Content="У меня есть подписка"
+                        Style="{StaticResource Link}" />
+                </StackPanel>
+
+                <!--  шаг 2: вставить ссылку-подписку  -->
+                <StackPanel x:Name="spWelcomePaste" Visibility="Collapsed">
+                    <TextBlock
+                        Margin="0,0,0,12"
+                        FontSize="14"
+                        Foreground="{StaticResource FireMuted}"
+                        Text="Скопируйте ссылку-подписку в боте («Моя ссылка») или в личном кабинете на сайте и вставьте её сюда."
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="btnWelcomePaste"
+                        Height="52"
+                        Content="Вставить ссылку из буфера"
+                        FontSize="16"
+                        Style="{StaticResource Primary}" />
+                    <WrapPanel Margin="0,8,0,0" HorizontalAlignment="Center">
+                        <Button
+                            x:Name="btnWelcomeBot"
+                            Content="Открыть бота"
+                            Style="{StaticResource Link}" />
+                        <Button
+                            x:Name="btnWelcomeSite"
+                            Content="Личный кабинет"
+                            Style="{StaticResource Link}" />
+                        <Button
+                            x:Name="btnWelcomeBack"
+                            Content="Назад"
+                            Style="{StaticResource Link}" />
+                    </WrapPanel>
+                </StackPanel>
             </StackPanel>
         </Grid>
 

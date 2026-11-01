@@ -81,6 +81,17 @@ public partial class FireHomeView : UserControl
         btnPing.Click += async (_, _) => await TestPing();
         btnAdvanced.Click += (_, _) => AdvancedRequested?.Invoke();
         btnPaste.Click += async (_, _) => await ImportFromClipboard();
+        // стартовый экран: «Начать» — пробный день в боте, потом вставить ссылку; «У меня есть подписка» — сразу вставить
+        btnStart.Click += (_, _) =>
+        {
+            ProcUtils.ProcessStart(FireVpn.Bot + "?start=trial");
+            ShowWelcomeStep(true);
+        };
+        btnHaveSub.Click += (_, _) => ShowWelcomeStep(true);
+        btnWelcomeBack.Click += (_, _) => ShowWelcomeStep(false);
+        btnWelcomePaste.Click += async (_, _) => await ImportFromClipboard();
+        btnWelcomeBot.Click += (_, _) => ProcUtils.ProcessStart(FireVpn.Bot);
+        btnWelcomeSite.Click += (_, _) => ProcUtils.ProcessStart(FireVpn.CabinetUrl);
         btnAddSub.Click += async (_, _) => await ImportFromClipboard();
         btnGetBot.Click += (_, _) => ProcUtils.ProcessStart(FireVpn.Bot);
         btnGetSite.Click += (_, _) => ProcUtils.ProcessStart(FireVpn.CabinetUrl);
@@ -148,10 +159,44 @@ public partial class FireHomeView : UserControl
 
     private void ShowPage(Grid page)
     {
+        var wasWelcome = pageWelcome.Visibility == Visibility.Visible;
         pageMain.Visibility = page == pageMain ? Visibility.Visible : Visibility.Collapsed;
         pageServers.Visibility = page == pageServers ? Visibility.Visible : Visibility.Collapsed;
         pageSettings.Visibility = page == pageSettings ? Visibility.Visible : Visibility.Collapsed;
+        pageWelcome.Visibility = page == pageWelcome ? Visibility.Visible : Visibility.Collapsed;
+
+        // стартовый экран всегда «горит»: свечение и угольки, как у подключённого Фаера
+        if (page == pageWelcome && !wasWelcome)
+        {
+            bgGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(0.7, 1, TimeSpan.FromSeconds(2.2))
+            {
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase(),
+            });
+            bgBottom.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromSeconds(1)));
+            welcomeRing.BeginAnimation(OpacityProperty, new DoubleAnimation(0.55, 1, TimeSpan.FromSeconds(1.6))
+            {
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase(),
+            });
+            HookEmbers();
+        }
+        else if (page != pageWelcome && wasWelcome && !_fxOn)
+        {
+            bgGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(400)));
+            bgBottom.BeginAnimation(OpacityProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(400)));
+        }
     }
+
+    private void ShowWelcomeStep(bool paste)
+    {
+        spWelcomeStart.Visibility = paste ? Visibility.Collapsed : Visibility.Visible;
+        spWelcomePaste.Visibility = paste ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private bool WelcomeShown => pageWelcome.Visibility == Visibility.Visible;
 
     #region Subscription
 
@@ -230,6 +275,7 @@ public partial class FireHomeView : UserControl
         }
         btnSubRefresh.IsEnabled = false;
         btnPaste.IsEnabled = false;
+        btnWelcomePaste.IsEnabled = false;
         NoticeManager.Instance.Enqueue("Обновляю подписку…");
         try
         {
@@ -242,6 +288,7 @@ public partial class FireHomeView : UserControl
         {
             btnSubRefresh.IsEnabled = true;
             btnPaste.IsEnabled = true;
+            btnWelcomePaste.IsEnabled = true;
         }
     }
 
@@ -293,7 +340,17 @@ public partial class FireHomeView : UserControl
 
     private void SetHasSub(bool hasSub)
     {
-        bdWelcome.Visibility = hasSub ? Visibility.Collapsed : Visibility.Visible;
+        // нет подписки — стартовый экран вместо главного; появилась — сразу на главный
+        bdWelcome.Visibility = Visibility.Collapsed;
+        if (!hasSub && pageMain.Visibility == Visibility.Visible)
+        {
+            ShowWelcomeStep(false);
+            ShowPage(pageWelcome);
+        }
+        else if (hasSub && WelcomeShown)
+        {
+            ShowPage(pageMain);
+        }
         btnServerCard.Visibility = hasSub ? Visibility.Visible : Visibility.Collapsed;
         spQuick.Visibility = hasSub && _servers.Count > 1 ? Visibility.Visible : Visibility.Hidden;
     }
@@ -758,7 +815,7 @@ public partial class FireHomeView : UserControl
 
     private void HookEmbers()
     {
-        if (_fxHooked || (!_fxOn && _embers.Count == 0))
+        if (_fxHooked || (!_fxOn && !WelcomeShown && _embers.Count == 0))
         {
             return;
         }
@@ -780,13 +837,14 @@ public partial class FireHomeView : UserControl
         var w = embers.ActualWidth;
         var h = embers.ActualHeight;
 
-        // пока включено — угольки поднимаются снизу и от Фаера (не на чужих страницах)
-        if (_fxOn && pageMain.Visibility == Visibility.Visible && _embers.Count < MaxEmbers && w > 0)
+        // пока включено (и на стартовом экране) — угольки поднимаются снизу и от Фаера
+        var ambient = (_fxOn && pageMain.Visibility == Visibility.Visible) || WelcomeShown;
+        if (ambient && _embers.Count < MaxEmbers && w > 0)
         {
             var count = _rnd.NextDouble() < dt * 22 ? 1 : 0;
             for (var i = 0; i < count; i++)
             {
-                if (_rnd.NextDouble() < 0.7)
+                if (WelcomeShown || _rnd.NextDouble() < 0.7)
                 {
                     Spawn(_rnd.NextDouble() * w, h + 6, (_rnd.NextDouble() - 0.5) * 20, -(45 + (_rnd.NextDouble() * 90)), 3 + (_rnd.NextDouble() * 4));
                 }
@@ -820,7 +878,7 @@ public partial class FireHomeView : UserControl
             Canvas.SetTop(p.El, p.Y);
         }
 
-        if (!_fxOn && _embers.Count == 0)
+        if (!_fxOn && !WelcomeShown && _embers.Count == 0)
         {
             CompositionTarget.Rendering -= OnFxFrame;
             _fxHooked = false;
