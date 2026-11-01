@@ -9,7 +9,7 @@ namespace v2rayN.Common;
 /// </summary>
 internal static class FireVpn
 {
-    public const string AppVersion = "1.0.0";
+    public const string AppVersion = "1.0.1";
     public const string SubName = "FireVPN";
     public const string Site = "https://fire-vpn.online";
     public const string UpdateUrl = Site + "/download/windows/latest.json";
@@ -27,8 +27,9 @@ internal static class FireVpn
     private static readonly TimeSpan UpdateCheckInterval = TimeSpan.FromHours(12);
 
     private static readonly string _tag = "FireVpn";
-    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(60) };
-    private static readonly HttpClient _download = new() { Timeout = TimeSpan.FromMinutes(15) };
+    // напрямую, мимо системного прокси: при запуске он может указывать на ещё не поднятое ядро
+    private static readonly HttpClient _http = new(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(60) };
+    private static readonly HttpClient _download = new(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromMinutes(15) };
 
     #region Settings
 

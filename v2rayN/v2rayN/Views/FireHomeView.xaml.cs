@@ -3,6 +3,7 @@ using ServiceLib.Services;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace v2rayN.Views;
 
@@ -57,6 +58,8 @@ public partial class FireHomeView : UserControl
     private bool? _shownState;
     private DateTime _connectedAt;
     private SpeedtestService? _speedtest;
+    private bool _pingRetryPlanned;
+    private Task? _pingTask;
 
     private static readonly ImageSource ImgCage = Img("firevpn_cage.jpg");
     private static readonly ImageSource ImgBreak = Img("firevpn_break.jpg");
@@ -67,6 +70,7 @@ public partial class FireHomeView : UserControl
     public FireHomeView()
     {
         InitializeComponent();
+        BuildComet();
 
         txtVersion.Text = $"FireVPN {FireVpn.AppVersion} · основан на v2rayN (GPL-3.0)";
 
@@ -136,6 +140,8 @@ public partial class FireHomeView : UserControl
             {
                 ShowUpdate(await FireVpn.CheckUpdate());
             }
+            // при запуске ядро ещё поднимается — проверяем задержку чуть позже
+            await Task.Delay(TimeSpan.FromSeconds(4));
             await TestPing();
         });
     }
@@ -395,6 +401,11 @@ public partial class FireHomeView : UserControl
     /// </summary>
     private async Task TestPing()
     {
+        // две проверки сразу мешают друг другу (общие тестовые порты) — ждём, пока закончится текущая
+        if (_pingTask is { IsCompleted: false })
+        {
+            return;
+        }
         var items = await AppManager.Instance.ProfileItems("");
         if (items == null || items.Count == 0)
         {
@@ -409,7 +420,7 @@ public partial class FireHomeView : UserControl
             Dispatcher.InvokeAsync(() => SetPing(result));
             return Task.CompletedTask;
         });
-        _ = _speedtest.RunLoop(ESpeedActionType.Realping, items);
+        _pingTask = _speedtest.RunLoop(ESpeedActionType.Realping, items);
     }
 
     private void SetPing(SpeedTestResult result)
@@ -421,6 +432,17 @@ public partial class FireHomeView : UserControl
         // пока идёт проверка, приходит текст «Тестирование…» — ждём число (-1 — сервер не ответил)
         if (!int.TryParse(result.Delay.Trim(), out var ms))
         {
+            return;
+        }
+        if (ms <= 0 && !_pingRetryPlanned)
+        {
+            // первая неудача бывает случайной (сеть, запуск ядра) — одна повторная проверка
+            _pingRetryPlanned = true;
+            Dispatcher.InvokeAsync(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(8));
+                await TestPing();
+            });
             return;
         }
         var text = ms > 0 ? $"{ms} мс" : "нет ответа";
@@ -456,9 +478,10 @@ public partial class FireHomeView : UserControl
             return;
         }
 
-        // Фаер ломает решётку
+        // Фаер ломает решётку — сноп искр
         _breaking = true;
         SetFireImage(ImgBreak);
+        Burst();
         txtStatus.Text = "Подключение…";
         var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.3) };
         t.Tick += (_, _) =>
@@ -548,6 +571,7 @@ public partial class FireHomeView : UserControl
             _shownState = on;
             SetFireImage(on ? ImgFree : ImgCage);
             AnimateGlow(on);
+            SetFx(on);
         }
 
         elRing.Stroke = on ? (Brush)FindResource("FireFill") : (Brush)FindResource("FireRingOff");
@@ -580,6 +604,230 @@ public partial class FireHomeView : UserControl
         fireScale.BeginAnimation(ScaleTransform.ScaleXProperty, pop);
         fireScale.BeginAnimation(ScaleTransform.ScaleYProperty, pop);
     }
+
+    #region Fire effects
+
+    private sealed class Ember
+    {
+        public required Ellipse El;
+        public double X, Y, Vx, Vy, Life, MaxLife, Phase;
+    }
+
+    private readonly List<Ember> _embers = [];
+    private readonly Random _rnd = new();
+    private readonly Stopwatch _fxClock = new();
+    private TimeSpan _fxLast;
+    private bool _fxOn;
+    private bool _fxHooked;
+    private const int MaxEmbers = 70;
+
+    private static readonly Color[] EmberColors =
+    [
+        Color.FromRgb(0xFF, 0xD3, 0x6B), Color.FromRgb(0xFF, 0xB1, 0x3B), Color.FromRgb(0xFF, 0x7A, 0x1A), Color.FromRgb(0xE8, 0x28, 0x3C),
+    ];
+
+    /// <summary>
+    /// Огненная «комета» на кольце: яркая голова и хвост из дуг, которые тускнеют и тоньшают к концу
+    /// </summary>
+    private void BuildComet()
+    {
+        const double c = 118, r = 115.5, step = 5;
+        const int n = 26;
+        for (var i = 0; i < n; i++)
+        {
+            var a1 = (-90 - (i * step)) * Math.PI / 180;
+            var a2 = (-90 - ((i + 1) * step) - 0.5) * Math.PI / 180;
+            var fig = new PathFigure { StartPoint = new Point(c + (r * Math.Cos(a1)), c + (r * Math.Sin(a1))) };
+            fig.Segments.Add(new ArcSegment(new Point(c + (r * Math.Cos(a2)), c + (r * Math.Sin(a2))), new Size(r, r), 0, false, SweepDirection.Counterclockwise, true));
+            var k = i / (double)n;
+            var col = k < 0.15 ? Color.FromRgb(0xFF, 0xF4, 0xC2) : k < 0.35 ? EmberColors[0] : k < 0.6 ? EmberColors[1] : k < 0.85 ? EmberColors[2] : EmberColors[3];
+            comet.Children.Add(new System.Windows.Shapes.Path
+            {
+                Data = new PathGeometry([fig]),
+                Stroke = new SolidColorBrush(col) { Opacity = 1 - k },
+                StrokeThickness = 10 - (7 * k),
+                StrokeStartLineCap = PenLineCap.Round,
+                StrokeEndLineCap = PenLineCap.Round,
+            });
+        }
+        var head = new Ellipse
+        {
+            Width = 13,
+            Height = 13,
+            Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0xF4, 0xC2)),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Color.FromRgb(0xFF, 0x8A, 0x1A), BlurRadius = 22, ShadowDepth = 0, Opacity = 1 },
+        };
+        Canvas.SetLeft(head, c - 6.5);
+        Canvas.SetTop(head, c - r - 6.5);
+        comet.Children.Add(head);
+        // свечение вокруг всего хвоста
+        comet.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Color.FromRgb(0xFF, 0x6A, 0x1A), BlurRadius = 16, ShadowDepth = 0, Opacity = 0.9 };
+    }
+
+    /// <summary>
+    /// Включено: бегущий импульс по кольцу, волны от круга, свечение и угольки на фоне
+    /// </summary>
+    private void SetFx(bool on)
+    {
+        _fxOn = on;
+        var fade = TimeSpan.FromMilliseconds(on ? 900 : 400);
+        comet.BeginAnimation(OpacityProperty, new DoubleAnimation(on ? 1 : 0, fade));
+        if (on)
+        {
+            cometRotate.BeginAnimation(RotateTransform.AngleProperty, new DoubleAnimation(0, 360, TimeSpan.FromSeconds(2.4)) { RepeatBehavior = RepeatBehavior.Forever });
+            StartWave(wave1, TimeSpan.Zero);
+            StartWave(wave2, TimeSpan.FromSeconds(1.2));
+            bgGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(0.65, 1, TimeSpan.FromSeconds(2.2))
+            {
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever,
+                EasingFunction = new SineEase(),
+            });
+            bgBottom.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromSeconds(1.2)));
+        }
+        else
+        {
+            cometRotate.BeginAnimation(RotateTransform.AngleProperty, null);
+            foreach (var w in new[] { wave1, wave2 })
+            {
+                w.BeginAnimation(OpacityProperty, new DoubleAnimation(0, fade));
+            }
+            bgGlow.BeginAnimation(OpacityProperty, new DoubleAnimation(0, fade));
+            bgBottom.BeginAnimation(OpacityProperty, new DoubleAnimation(0, fade));
+        }
+        HookEmbers();
+    }
+
+    // волна: кольцо расширяется от Фаера и гаснет
+    private static void StartWave(Ellipse wave, TimeSpan delay)
+    {
+        var dur = TimeSpan.FromSeconds(2.4);
+        var scale = new DoubleAnimation(1, 1.32, dur) { BeginTime = delay, RepeatBehavior = RepeatBehavior.Forever, EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } };
+        var st = (ScaleTransform)wave.RenderTransform;
+        st.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
+        st.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
+        wave.BeginAnimation(OpacityProperty, new DoubleAnimation(0.85, 0, dur) { BeginTime = delay, RepeatBehavior = RepeatBehavior.Forever });
+    }
+
+    /// <summary>
+    /// Фаер вырвался: сноп искр из центра во все стороны
+    /// </summary>
+    private void Burst()
+    {
+        var center = FireCenter();
+        for (var i = 0; i < 60; i++)
+        {
+            var a = _rnd.NextDouble() * Math.PI * 2;
+            var speed = 140 + (_rnd.NextDouble() * 260);
+            var r = 70 + (_rnd.NextDouble() * 50);
+            Spawn(center.X + (Math.Cos(a) * r), center.Y + (Math.Sin(a) * r), Math.Cos(a) * speed, (Math.Sin(a) * speed) - 60, 0.7 + (_rnd.NextDouble() * 0.7), 1.8);
+        }
+        HookEmbers();
+    }
+
+    private Point FireCenter()
+    {
+        try
+        {
+            return btnFire.TranslatePoint(new Point(btnFire.ActualWidth / 2, btnFire.ActualHeight / 2), embers);
+        }
+        catch
+        {
+            return new Point(embers.ActualWidth / 2, embers.ActualHeight / 2);
+        }
+    }
+
+    private void Spawn(double x, double y, double vx, double vy, double life, double sizeMul = 1)
+    {
+        if (_embers.Count >= MaxEmbers + 50)
+        {
+            return;
+        }
+        var size = (2 + (_rnd.NextDouble() * 4)) * sizeMul;
+        var col = EmberColors[_rnd.Next(EmberColors.Length)];
+        var el = new Ellipse
+        {
+            Width = size,
+            Height = size,
+            Fill = new RadialGradientBrush(Color.FromArgb(255, 255, 240, 200), col),
+            IsHitTestVisible = false,
+        };
+        embers.Children.Add(el);
+        _embers.Add(new Ember { El = el, X = x, Y = y, Vx = vx, Vy = vy, Life = life, MaxLife = life, Phase = _rnd.NextDouble() * 6.28 });
+    }
+
+    private void HookEmbers()
+    {
+        if (_fxHooked || (!_fxOn && _embers.Count == 0))
+        {
+            return;
+        }
+        _fxHooked = true;
+        _fxClock.Restart();
+        _fxLast = TimeSpan.Zero;
+        CompositionTarget.Rendering += OnFxFrame;
+    }
+
+    private void OnFxFrame(object? sender, EventArgs e)
+    {
+        var now = _fxClock.Elapsed;
+        var dt = Math.Min(0.05, (now - _fxLast).TotalSeconds);
+        _fxLast = now;
+        if (dt <= 0)
+        {
+            return;
+        }
+        var w = embers.ActualWidth;
+        var h = embers.ActualHeight;
+
+        // пока включено — угольки поднимаются снизу и от Фаера (не на чужих страницах)
+        if (_fxOn && pageMain.Visibility == Visibility.Visible && _embers.Count < MaxEmbers && w > 0)
+        {
+            var count = _rnd.NextDouble() < dt * 22 ? 1 : 0;
+            for (var i = 0; i < count; i++)
+            {
+                if (_rnd.NextDouble() < 0.7)
+                {
+                    Spawn(_rnd.NextDouble() * w, h + 6, (_rnd.NextDouble() - 0.5) * 20, -(45 + (_rnd.NextDouble() * 90)), 3 + (_rnd.NextDouble() * 4));
+                }
+                else
+                {
+                    var c = FireCenter();
+                    var a = _rnd.NextDouble() * Math.PI * 2;
+                    Spawn(c.X + (Math.Cos(a) * 118), c.Y + (Math.Sin(a) * 118), Math.Cos(a) * 25, -(30 + (_rnd.NextDouble() * 60)), 1.6 + (_rnd.NextDouble() * 1.6));
+                }
+            }
+        }
+
+        for (var i = _embers.Count - 1; i >= 0; i--)
+        {
+            var p = _embers[i];
+            p.Life -= dt;
+            if (p.Life <= 0 || p.Y < -10)
+            {
+                embers.Children.Remove(p.El);
+                _embers.RemoveAt(i);
+                continue;
+            }
+            p.Phase += dt * 3;
+            p.Vx *= 1 - (dt * 1.2);
+            p.Vy = (p.Vy * (1 - (dt * 0.6))) - (dt * 12);
+            p.X += (p.Vx + (Math.Sin(p.Phase) * 14)) * dt;
+            p.Y += p.Vy * dt;
+            var k = p.Life / p.MaxLife;
+            p.El.Opacity = Math.Min(1, k * 1.6) * (0.75 + (0.25 * Math.Sin(p.Phase * 2.3)));
+            Canvas.SetLeft(p.El, p.X);
+            Canvas.SetTop(p.El, p.Y);
+        }
+
+        if (!_fxOn && _embers.Count == 0)
+        {
+            CompositionTarget.Rendering -= OnFxFrame;
+            _fxHooked = false;
+        }
+    }
+
+    #endregion Fire effects
 
     // включено — мягкое «дыхание» свечения вокруг Фаера
     private void AnimateGlow(bool on)

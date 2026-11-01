@@ -22,6 +22,7 @@
 
         <!--  кнопка без оформления  -->
         <Style x:Key="Flat" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Background" Value="Transparent" />
@@ -52,6 +53,7 @@
 
         <!--  карточка-кнопка; Tag=True — выбрана (оранжевая рамка)  -->
         <Style x:Key="Card" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -82,6 +84,7 @@
         </Style>
 
         <Style x:Key="Primary" TargetType="Button">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontSize" Value="15" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -154,6 +157,31 @@
     </UserControl.Resources>
 
     <Grid Background="{StaticResource FireBg}">
+
+        <!--  огонь на фоне, пока VPN включён: свечение снизу и из центра, летящие вверх угольки  -->
+        <Grid
+            x:Name="fxLayer"
+            ClipToBounds="True"
+            IsHitTestVisible="False">
+            <Rectangle x:Name="bgGlow" Opacity="0">
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="0.5,0.5" GradientOrigin="0.5,0.5" RadiusX="0.85" RadiusY="0.55">
+                        <GradientStop Offset="0" Color="#66FF5A14" />
+                        <GradientStop Offset="0.55" Color="#22E8283C" />
+                        <GradientStop Offset="1" Color="#00100C0C" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Rectangle x:Name="bgBottom" Opacity="0">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Offset="0.55" Color="#00E8283C" />
+                        <GradientStop Offset="1" Color="#55FF4A10" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <Canvas x:Name="embers" />
+        </Grid>
 
         <!--  ================= главный экран =================  -->
         <Grid x:Name="pageMain" Margin="20,10,20,18">
@@ -287,6 +315,32 @@
                     Width="300"
                     Height="300"
                     HorizontalAlignment="Center">
+                    <Ellipse
+                        x:Name="wave1"
+                        Width="236"
+                        Height="236"
+                        IsHitTestVisible="False"
+                        Opacity="0"
+                        RenderTransformOrigin="0.5,0.5"
+                        Stroke="#FF7A1A"
+                        StrokeThickness="3">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform />
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse
+                        x:Name="wave2"
+                        Width="236"
+                        Height="236"
+                        IsHitTestVisible="False"
+                        Opacity="0"
+                        RenderTransformOrigin="0.5,0.5"
+                        Stroke="#FFB13B"
+                        StrokeThickness="2">
+                        <Ellipse.RenderTransform>
+                            <ScaleTransform />
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
                     <Ellipse x:Name="glow" Opacity="0">
                         <Ellipse.Fill>
                             <RadialGradientBrush>
@@ -318,6 +372,17 @@
                                 x:Name="elRing"
                                 Stroke="{StaticResource FireRingOff}"
                                 StrokeThickness="5" />
+                            <Canvas
+                                x:Name="comet"
+                                Width="236"
+                                Height="236"
+                                IsHitTestVisible="False"
+                                Opacity="0"
+                                RenderTransformOrigin="0.5,0.5">
+                                <Canvas.RenderTransform>
+                                    <RotateTransform x:Name="cometRotate" />
+                                </Canvas.RenderTransform>
+                            </Canvas>
                         </Grid>
                     </Button>
                 </Grid>
