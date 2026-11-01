@@ -40,3 +40,17 @@ Get-ChildItem $stage -Recurse -File | ForEach-Object {
 }
 $archive.Dispose()
 "{0} {1:N0} MB" -f $zip, ((Get-Item $zip).Length / 1MB)
+
+# single-file installer FireVPN-<version>-setup.exe (Inno Setup in D:\firevpn\innosetup)
+$iscc = 'D:\firevpn\innosetup\ISCC.exe'
+$iss = 'D:\firevpn\firevpn-windows\scripts\firevpn-setup.iss'
+$ver = ([regex]::Match((Get-Content -Raw "$src\v2rayN\Common\FireVpn.cs"), 'AppVersion = "([0-9.]+)"')).Groups[1].Value
+if (Test-Path $iscc) {
+    Get-ChildItem 'D:\firevpn\win-release' -Filter 'FireVPN-*-setup.exe' | Remove-Item -Force
+    & $iscc /Q "/DAppVersion=$ver" "/DSourceDir=$stage" '/DOutputDir=D:\firevpn\win-release' $iss
+    if ($LASTEXITCODE -ne 0) { "installer build failed: $LASTEXITCODE"; exit 1 }
+    $setup = Get-Item "D:\firevpn\win-release\FireVPN-$ver-setup.exe"
+    "{0} {1:N0} MB" -f $setup.FullName, ($setup.Length / 1MB)
+} else {
+    "Inno Setup not found ($iscc) - installer skipped"
+}
