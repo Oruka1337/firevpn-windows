@@ -1,0 +1,643 @@
+<UserControl
+    x:Class="v2rayN.Views.FireHomeView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:v2rayN.Views"
+    FontFamily="Segoe UI"
+    Foreground="White">
+    <!--  FireVPN: минималистичный главный экран. Выключено — Фаер за решёткой, включено — на свободе  -->
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="FireBg" Color="#100C0C" />
+        <SolidColorBrush x:Key="FireCard" Color="#1C1717" />
+        <SolidColorBrush x:Key="FireCardHover" Color="#262020" />
+        <SolidColorBrush x:Key="FireMuted" Color="#A89C9A" />
+        <SolidColorBrush x:Key="FireDim" Color="#6E6362" />
+        <SolidColorBrush x:Key="FireAccent" Color="#FF7A1A" />
+        <SolidColorBrush x:Key="FireRingOff" Color="#3A3333" />
+        <LinearGradientBrush x:Key="FireFill" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#FFB13B" />
+            <GradientStop Offset="0.5" Color="#FF6A1A" />
+            <GradientStop Offset="1" Color="#E8283C" />
+        </LinearGradientBrush>
+
+        <!--  кнопка без оформления  -->
+        <Style x:Key="Flat" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style
+            x:Key="Icon"
+            BasedOn="{StaticResource Flat}"
+            TargetType="Button">
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="Padding" Value="8" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource FireAccent}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!--  карточка-кнопка; Tag=True — выбрана (оранжевая рамка)  -->
+        <Style x:Key="Card" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="14,12" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="bd"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{StaticResource FireCard}"
+                            BorderBrush="Transparent"
+                            BorderThickness="1.5"
+                            CornerRadius="16">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource FireCardHover}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource FireAccent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Primary" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="bd"
+                            Background="{StaticResource FireFill}"
+                            CornerRadius="14">
+                            <ContentPresenter
+                                Margin="14,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.88" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Link" BasedOn="{StaticResource Flat}" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource FireAccent}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="#FFC23D" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="Section" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="2,18,0,8" />
+        </Style>
+
+        <!--  круглый флаг (рисуется в FireFlags; нет флага — две буквы страны)  -->
+        <DataTemplate x:Key="FlagCircle" DataType="{x:Type local:FireServerItem}">
+            <Viewbox>
+                <Grid Width="60" Height="60">
+                    <Ellipse Fill="#2C2525" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        FontSize="20"
+                        FontWeight="Bold"
+                        Foreground="{StaticResource FireMuted}"
+                        Text="{Binding CodeText}" />
+                    <Ellipse>
+                        <Ellipse.Fill>
+                            <ImageBrush ImageSource="{Binding Flag}" Stretch="UniformToFill" />
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <Ellipse Stroke="#40FFFFFF" StrokeThickness="1.5" />
+                </Grid>
+            </Viewbox>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid Background="{StaticResource FireBg}">
+
+        <!--  ================= главный экран =================  -->
+        <Grid x:Name="pageMain" Margin="20,10,20,18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Margin="0,0,0,12">
+                <Button
+                    x:Name="btnSettings"
+                    Content="&#xE713;"
+                    DockPanel.Dock="Right"
+                    Style="{StaticResource Icon}"
+                    ToolTip="Настройки" />
+                <Image
+                    Width="26"
+                    Height="26"
+                    Source="/Resources/firevpn_flame.png" />
+                <TextBlock
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Text="FireVPN" />
+            </DockPanel>
+
+            <!--  новая версия  -->
+            <Border
+                x:Name="bdUpdate"
+                Grid.Row="1"
+                Margin="0,0,0,10"
+                Padding="14,10"
+                Background="{StaticResource FireCard}"
+                BorderBrush="{StaticResource FireAccent}"
+                BorderThickness="1.5"
+                CornerRadius="16"
+                Visibility="Collapsed">
+                <DockPanel>
+                    <Button
+                        x:Name="btnUpdate"
+                        Width="112"
+                        Height="38"
+                        Margin="10,0,0,0"
+                        Content="Обновить"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource Primary}" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="txtUpdateTitle" FontWeight="SemiBold" />
+                        <TextBlock
+                            x:Name="txtUpdateNotes"
+                            FontSize="12"
+                            Foreground="{StaticResource FireMuted}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!--  выбранный сервер  -->
+            <Button
+                x:Name="btnServerCard"
+                Grid.Row="2"
+                Style="{StaticResource Card}">
+                <DockPanel>
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        DockPanel.Dock="Right"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="14"
+                        Text="&#xE76C;" />
+                    <ContentControl
+                        x:Name="ccServerFlag"
+                        Width="40"
+                        Height="40"
+                        ContentTemplate="{StaticResource FlagCircle}" />
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock
+                            x:Name="txtServerName"
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="Выберите сервер" />
+                        <TextBlock
+                            x:Name="txtServerSub"
+                            FontSize="12"
+                            Foreground="{StaticResource FireMuted}" />
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+
+            <!--  нет подписки  -->
+            <Border
+                x:Name="bdWelcome"
+                Grid.Row="2"
+                Padding="16"
+                Background="{StaticResource FireCard}"
+                CornerRadius="16"
+                Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock
+                        FontSize="14"
+                        Text="Вставьте ссылку-подписку из бота или личного кабинета — серверы появятся здесь."
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="btnPaste"
+                        Margin="0,12,0,4"
+                        Content="Вставить ссылку из буфера"
+                        Style="{StaticResource Primary}" />
+                    <WrapPanel HorizontalAlignment="Center">
+                        <Button
+                            x:Name="btnGetBot"
+                            Content="Получить в Telegram-боте"
+                            Style="{StaticResource Link}" />
+                        <Button
+                            x:Name="btnGetSite"
+                            Content="Купить на сайте"
+                            Style="{StaticResource Link}" />
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!--  Фаер: большая круглая кнопка  -->
+            <StackPanel
+                Grid.Row="3"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+                <Grid
+                    Width="300"
+                    Height="300"
+                    HorizontalAlignment="Center">
+                    <Ellipse x:Name="glow" Opacity="0">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Offset="0.55" Color="#AAFF6A1A" />
+                                <GradientStop Offset="1" Color="#00FF6A1A" />
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <Button
+                        x:Name="btnFire"
+                        Width="236"
+                        Height="236"
+                        RenderTransformOrigin="0.5,0.5"
+                        Style="{StaticResource Flat}"
+                        ToolTip="Подключить / отключить">
+                        <Button.RenderTransform>
+                            <ScaleTransform x:Name="fireScale" ScaleX="1" ScaleY="1" />
+                        </Button.RenderTransform>
+                        <Grid Width="236" Height="236">
+                            <Ellipse x:Name="elFire">
+                                <Ellipse.Fill>
+                                    <ImageBrush
+                                        x:Name="brFire"
+                                        ImageSource="/Resources/firevpn_cage.jpg"
+                                        Stretch="UniformToFill" />
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <Ellipse
+                                x:Name="elRing"
+                                Stroke="{StaticResource FireRingOff}"
+                                StrokeThickness="5" />
+                        </Grid>
+                    </Button>
+                </Grid>
+                <TextBlock
+                    x:Name="txtStatus"
+                    Margin="0,2,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="15"
+                    Foreground="{StaticResource FireMuted}"
+                    Text="Не подключено" />
+                <TextBlock
+                    x:Name="txtTimer"
+                    HorizontalAlignment="Center"
+                    FontSize="44"
+                    FontWeight="Bold"
+                    Text="00:00:00"
+                    Visibility="Collapsed" />
+                <TextBlock
+                    x:Name="txtHint"
+                    Margin="0,6,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="13"
+                    Foreground="{StaticResource FireDim}"
+                    Text="Нажмите на Фаера, чтобы освободить его" />
+            </StackPanel>
+
+            <!--  быстрый выбор  -->
+            <StackPanel
+                x:Name="spQuick"
+                Grid.Row="4"
+                HorizontalAlignment="Center">
+                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontFamily="Segoe MDL2 Assets"
+                        FontSize="15"
+                        Foreground="{StaticResource FireAccent}"
+                        Text="&#xE945;" />
+                    <TextBlock
+                        Margin="6,0,0,0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Text="Серверы" />
+                </StackPanel>
+                <ItemsControl x:Name="icQuick" Margin="0,10,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:FireServerItem}">
+                            <Button
+                                Margin="10,0"
+                                VerticalAlignment="Center"
+                                Click="Quick_Click"
+                                Style="{StaticResource Flat}"
+                                ToolTip="{Binding Name}">
+                                <Grid>
+                                    <Ellipse
+                                        x:Name="ring"
+                                        Margin="-5"
+                                        Stroke="{StaticResource FireAccent}"
+                                        StrokeThickness="2.5"
+                                        Visibility="Hidden" />
+                                    <ContentControl
+                                        x:Name="flag"
+                                        Width="38"
+                                        Height="38"
+                                        Content="{Binding}"
+                                        ContentTemplate="{StaticResource FlagCircle}" />
+                                </Grid>
+                            </Button>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter TargetName="ring" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="flag" Property="Width" Value="52" />
+                                    <Setter TargetName="flag" Property="Height" Value="52" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock
+                    x:Name="txtQuickName"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    FontSize="14"
+                    FontWeight="SemiBold" />
+            </StackPanel>
+        </Grid>
+
+        <!--  ================= выбор сервера =================  -->
+        <Grid
+            x:Name="pageServers"
+            Margin="16,10,16,16"
+            Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <DockPanel Margin="0,0,0,12">
+                <Button
+                    x:Name="btnServersBack"
+                    Content="&#xE72B;"
+                    DockPanel.Dock="Left"
+                    Style="{StaticResource Icon}" />
+                <Button
+                    x:Name="btnPing"
+                    Content="&#xE72C;"
+                    DockPanel.Dock="Right"
+                    Style="{StaticResource Icon}"
+                    ToolTip="Проверить скорость ответа" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="19"
+                    FontWeight="Bold"
+                    Text="Выбор сервера" />
+            </DockPanel>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsControl x:Name="icServers">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:FireServerItem}">
+                            <Button
+                                Margin="0,0,0,10"
+                                Click="Server_Click"
+                                Style="{StaticResource Card}"
+                                Tag="{Binding SelectedTag}">
+                                <DockPanel>
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        DockPanel.Dock="Right"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        Foreground="{StaticResource FireAccent}"
+                                        Text="{Binding Ping}" />
+                                    <ContentControl
+                                        Width="38"
+                                        Height="38"
+                                        Content="{Binding}"
+                                        ContentTemplate="{StaticResource FlagCircle}" />
+                                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="16"
+                                            FontWeight="Bold"
+                                            Text="{Binding Name}" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="{StaticResource FireMuted}"
+                                            Text="{Binding Country}" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <!--  ================= настройки =================  -->
+        <Grid
+            x:Name="pageSettings"
+            Margin="16,10,16,0"
+            Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <DockPanel Margin="0,0,0,4">
+                <Button
+                    x:Name="btnSettingsBack"
+                    Content="&#xE72B;"
+                    DockPanel.Dock="Left"
+                    Style="{StaticResource Icon}" />
+                <Border Width="35" DockPanel.Dock="Right" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="19"
+                    FontWeight="Bold"
+                    Text="Настройки" />
+            </DockPanel>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,0,18">
+                    <TextBlock Style="{StaticResource Section}" Text="Подписка" />
+                    <Border
+                        Padding="16,14"
+                        Background="{StaticResource FireCard}"
+                        CornerRadius="16">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button
+                                    x:Name="btnSubRefresh"
+                                    Content="&#xE72C;"
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource Icon}"
+                                    ToolTip="Обновить подписку" />
+                                <TextBlock
+                                    VerticalAlignment="Center"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    FontSize="18"
+                                    Foreground="{StaticResource FireAccent}"
+                                    Text="&#xE8D7;" />
+                                <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock
+                                        x:Name="txtSubTitle"
+                                        FontSize="15"
+                                        FontWeight="Bold"
+                                        Text="FireVPN" />
+                                    <TextBlock
+                                        x:Name="txtSubLeft"
+                                        FontSize="12"
+                                        Foreground="{StaticResource FireMuted}"
+                                        Text="Нет подписки" />
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock
+                                x:Name="txtTraffic"
+                                Margin="30,6,0,0"
+                                FontSize="12"
+                                Foreground="{StaticResource FireMuted}" />
+                            <Button
+                                x:Name="btnAddSub"
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Left"
+                                Content="Вставить другую подписку из буфера"
+                                Style="{StaticResource Link}" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Style="{StaticResource Section}" Text="Режим подключения" />
+                    <Button
+                        x:Name="btnModeProxy"
+                        Margin="0,0,0,8"
+                        Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="Bold"
+                                Text="Прокси" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource FireMuted}"
+                                Text="Браузеры и большинство программ. Права администратора не нужны."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="btnModeTun" Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock
+                                FontSize="15"
+                                FontWeight="Bold"
+                                Text="Туннель — весь компьютер" />
+                            <TextBlock
+                                FontSize="12"
+                                Foreground="{StaticResource FireMuted}"
+                                Text="Игры и все программы. FireVPN попросит права администратора."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Button>
+
+                    <TextBlock Style="{StaticResource Section}" Text="Система" />
+                    <Border
+                        Padding="16,12"
+                        Background="{StaticResource FireCard}"
+                        CornerRadius="16">
+                        <CheckBox
+                            x:Name="chkAutoRun"
+                            VerticalContentAlignment="Center"
+                            Foreground="White">
+                            <TextBlock FontSize="14" Text="Запускать вместе с Windows" />
+                        </CheckBox>
+                    </Border>
+                    <Button
+                        x:Name="btnAdvanced"
+                        Margin="0,8,0,0"
+                        Style="{StaticResource Card}">
+                        <DockPanel>
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                DockPanel.Dock="Right"
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="13"
+                                Text="&#xE76C;" />
+                            <TextBlock FontSize="14" Text="Расширенные настройки (v2rayN)" />
+                        </DockPanel>
+                    </Button>
+
+                    <TextBlock Style="{StaticResource Section}" Text="Контакты" />
+                    <Button
+                        x:Name="btnSite"
+                        Margin="0,0,0,8"
+                        Style="{StaticResource Card}">
+                        <TextBlock FontSize="14" Text="🌐  Сайт fire-vpn.online" />
+                    </Button>
+                    <Button
+                        x:Name="btnCabinet"
+                        Margin="0,0,0,8"
+                        Style="{StaticResource Card}">
+                        <TextBlock FontSize="14" Text="👤  Личный кабинет" />
+                    </Button>
+                    <Button
+                        x:Name="btnSupport"
+                        Margin="0,0,0,8"
+                        Style="{StaticResource Card}">
+                        <TextBlock FontSize="14" Text="💬  Поддержка в Telegram" />
+                    </Button>
+                    <Button x:Name="btnInvite" Style="{StaticResource Card}">
+                        <TextBlock FontSize="14" Text="🎁  Пригласить друзей — бонусные дни" />
+                    </Button>
+
+                    <TextBlock
+                        x:Name="txtVersion"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Center"
+                        FontSize="11"
+                        Foreground="{StaticResource FireDim}" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>
