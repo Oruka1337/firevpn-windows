@@ -177,7 +177,15 @@ public partial class MainWindow
 
     private async Task DelegateSnackMsg(string content)
     {
-        MainSnackbar.MessageQueue?.Enqueue(content);
+        // FireVPN: на простом экране — своё огненное уведомление, в расширенном режиме — как в v2rayN
+        if (!_advancedMode && fireHome.IsVisible)
+        {
+            fireHome.ShowToast(content);
+        }
+        else
+        {
+            MainSnackbar.MessageQueue?.Enqueue(content);
+        }
         await Task.CompletedTask;
     }
 

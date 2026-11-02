@@ -814,7 +814,12 @@
                             <TextBlock
                                 FontSize="12"
                                 Foreground="{StaticResource FireMuted}"
-                                Text="Игры и все программы. FireVPN попросит права администратора."
+                                Text="Игры и все программы. Нужны права администратора — FireVPN перезапустится с ними сам."
+                                TextWrapping="Wrap" />
+                            <TextBlock
+                                x:Name="txtAdmin"
+                                Margin="0,4,0,0"
+                                FontSize="12"
                                 TextWrapping="Wrap" />
                         </StackPanel>
                     </Button>
@@ -878,5 +883,47 @@
                 </StackPanel>
             </ScrollViewer>
         </Grid>
+
+        <!--  уведомление FireVPN: всплывает снизу и само гаснет (вместо серой полоски v2rayN)  -->
+        <Border
+            x:Name="toast"
+            MaxWidth="400"
+            Margin="18,0,18,22"
+            Padding="14,11"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Background="#F0231A1A"
+            BorderBrush="{StaticResource FireFill}"
+            BorderThickness="1.5"
+            CornerRadius="14"
+            IsHitTestVisible="False"
+            Opacity="0"
+            Visibility="Collapsed">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="toastShift" Y="20" />
+            </Border.RenderTransform>
+            <Border.Effect>
+                <DropShadowEffect
+                    BlurRadius="22"
+                    Opacity="0.55"
+                    ShadowDepth="0"
+                    Color="#FF5A14" />
+            </Border.Effect>
+            <DockPanel>
+                <Image
+                    Width="20"
+                    Height="20"
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center"
+                    DockPanel.Dock="Left"
+                    Source="/Resources/firevpn_flame.png" />
+                <TextBlock
+                    x:Name="txtToast"
+                    VerticalAlignment="Center"
+                    FontSize="13"
+                    Foreground="White"
+                    TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

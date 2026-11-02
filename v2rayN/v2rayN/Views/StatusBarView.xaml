@@ -108,6 +108,50 @@
             IconSource="/Resources/firevpn.ico"
             NoLeftClickDelay="True"
             ToolTipText="FireVPN">
+            <!--  FireVPN: подсказка при наведении на значок в трее  -->
+            <tb:TaskbarIcon.TrayToolTip>
+                <Border
+                    MinWidth="220"
+                    Padding="14,10"
+                    Background="#1C1717"
+                    BorderBrush="#FF7A1A"
+                    BorderThickness="1.5"
+                    CornerRadius="14">
+                    <StackPanel Orientation="Horizontal">
+                        <Image
+                            Width="30"
+                            Height="30"
+                            VerticalAlignment="Center"
+                            Source="/Resources/firevpn_flame.png" />
+                        <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="14"
+                                FontWeight="Bold"
+                                Foreground="White"
+                                Text="FireVPN" />
+                            <StackPanel Margin="0,2,0,0" Orientation="Horizontal">
+                                <Ellipse
+                                    x:Name="ttDot"
+                                    Width="8"
+                                    Height="8"
+                                    Margin="0,0,6,0"
+                                    VerticalAlignment="Center"
+                                    Fill="#6E6362" />
+                                <TextBlock
+                                    x:Name="ttStatus"
+                                    FontSize="12"
+                                    Foreground="#A89C9A"
+                                    Text="Не подключено" />
+                            </StackPanel>
+                            <TextBlock
+                                x:Name="ttServer"
+                                Margin="0,2,0,0"
+                                FontSize="12"
+                                Foreground="#A89C9A" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </tb:TaskbarIcon.TrayToolTip>
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu Style="{StaticResource DefContextMenu}">
                     <MenuItem

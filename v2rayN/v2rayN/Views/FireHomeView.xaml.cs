@@ -583,6 +583,16 @@ public partial class FireHomeView : UserControl
         FireVpn.Settings.FullDevice = tun;
         FireVpn.SaveSettings();
         UpdateModeUi();
+        if (tun && !Utils.IsAdministrator())
+        {
+            // туннелю нужны права администратора — перезапускаемся с ними сразу, а не при подключении,
+            // чтобы человек видел, что выбор сработал; был подключён — после перезапуска туннель включится сам
+            FireVpn.Settings.PendingTun = IsConnected;
+            FireVpn.SaveSettings();
+            NoticeManager.Instance.Enqueue("Туннелю нужны права администратора — FireVPN перезапускается с ними");
+            _ = AppManager.Instance.RebootAsAdmin();
+            return;
+        }
         if (!IsConnected)
         {
             return;
@@ -603,6 +613,9 @@ public partial class FireHomeView : UserControl
     {
         btnModeProxy.Tag = FireVpn.Settings.FullDevice ? "False" : "True";
         btnModeTun.Tag = FireVpn.Settings.FullDevice ? "True" : "False";
+        var admin = Utils.IsAdministrator();
+        txtAdmin.Text = admin ? "✅ Права администратора есть" : "Сейчас без прав администратора";
+        txtAdmin.Foreground = admin ? (Brush)FindResource("FireAccent") : (Brush)FindResource("FireDim");
     }
 
     private async Task SetAutoRun(bool on)
@@ -906,6 +919,61 @@ public partial class FireHomeView : UserControl
     }
 
     #endregion Connect
+
+    #region Toast
+
+    private DispatcherTimer? _toastTimer;
+
+    /// <summary>
+    /// Огненное уведомление снизу экрана: всплывает и через несколько секунд гаснет (длиннее текст — дольше)
+    /// </summary>
+    public void ShowToast(string text)
+    {
+        text = Humanize(text);
+        txtToast.Text = text;
+        toast.Visibility = Visibility.Visible;
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        toast.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(220)));
+        toastShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(20, 0, TimeSpan.FromMilliseconds(260)) { EasingFunction = ease });
+
+        _toastTimer?.Stop();
+        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(2.5 + (text.Length * 0.04), 3, 7)) };
+        _toastTimer.Tick += (_, _) =>
+        {
+            _toastTimer?.Stop();
+            var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(300));
+            fade.Completed += (_, _) =>
+            {
+                if (toast.Opacity == 0)
+                {
+                    toast.Visibility = Visibility.Collapsed;
+                }
+            };
+            toast.BeginAnimation(OpacityProperty, fade);
+            toastShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, TimeSpan.FromMilliseconds(300)));
+        };
+        _toastTimer.Start();
+    }
+
+    // «[VLESS] 🇫🇮 Хельсинки(168***127:2096)» — так v2rayN сообщает о запуске сервера; человеку нужно только название
+    private static readonly System.Text.RegularExpressions.Regex ServerSummary =
+        new(@"^\[\w+\]\s+(?:\[\w+\])?(?<name>.+?)\([^()]*\)$");
+
+    private static string Humanize(string text)
+    {
+        text = text.Trim();
+        var m = ServerSummary.Match(text);
+        if (!m.Success)
+        {
+            return text;
+        }
+        var remarks = m.Groups["name"].Value;
+        var name = FireFlags.StripFlags(remarks);
+        var country = FireFlags.CountryName(FireFlags.CountryCode(remarks));
+        return country.IsNotEmpty() && country != name ? $"Сервер: {name} · {country}" : $"Сервер: {name}";
+    }
+
+    #endregion Toast
 
     #region Update
 

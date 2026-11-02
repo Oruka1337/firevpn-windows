@@ -44,7 +44,7 @@ $archive.Dispose()
 # single-file installer FireVPN-<version>-setup.exe (Inno Setup in D:\firevpn\innosetup)
 $iscc = 'D:\firevpn\innosetup\ISCC.exe'
 $iss = 'D:\firevpn\firevpn-windows\scripts\firevpn-setup.iss'
-$ver = ([regex]::Match((Get-Content -Raw "$src\v2rayN\Common\FireVpn.cs"), 'AppVersion = "([0-9.]+)"')).Groups[1].Value
+$ver = ([regex]::Match((Get-Content -Raw "$src\ServiceLib\Common\FireVpn.cs"), 'AppVersion = "([0-9.]+)"')).Groups[1].Value
 if (Test-Path $iscc) {
     Get-ChildItem 'D:\firevpn\win-release' -Filter 'FireVPN-*-setup.exe' | Remove-Item -Force
     & $iscc /Q "/DAppVersion=$ver" "/DSourceDir=$stage" '/DOutputDir=D:\firevpn\win-release' $iss

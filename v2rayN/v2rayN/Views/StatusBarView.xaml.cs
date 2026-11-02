@@ -1,3 +1,4 @@
+using System.Windows.Media;
 using v2rayN.Manager;
 
 namespace v2rayN.Views;
@@ -45,7 +46,11 @@ public partial class StatusBarView
 
             this.BindCommand(ViewModel, vm => vm.CopyProxyCmdToClipboardCmd, v => v.menuCopyProxyCmdToClipboard).DisposeWith(disposables);
 
-            this.OneWayBind(ViewModel, vm => vm.RunningServerToolTipText, v => v.tbNotify.ToolTipText).DisposeWith(disposables);
+            // FireVPN: вместо «[VLESS] FI Хельсинки(168***127:2096)» — статус и сервер по-человечески
+            ViewModel.WhenAnyValue(vm => vm.RunningServerDisplay, vm => vm.BlSystemProxySet, vm => vm.EnableTun)
+                .ObserveOn(RxSchedulers.MainThreadScheduler)
+                .Subscribe(async _ => await UpdateTrayTip())
+                .DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.NotifyLeftClickCmd, v => v.tbNotify.LeftClickCommand).DisposeWith(disposables);
 
             //status bar
@@ -77,6 +82,24 @@ public partial class StatusBarView
         });
 
         _ = RefreshIcon();
+    }
+
+    private async Task UpdateTrayTip()
+    {
+        var on = ViewModel?.BlSystemProxySet == true || ViewModel?.EnableTun == true;
+        var server = await ConfigHandler.GetDefaultServer(_config);
+        var code = FireFlags.CountryCode(server?.Remarks);
+        var name = FireFlags.StripFlags(server?.Remarks);
+        var country = FireFlags.CountryName(code);
+        var where = server == null ? "" : (country.IsNotEmpty() && country != name ? $"{name} · {country}" : name);
+
+        ttStatus.Text = on ? (ViewModel?.EnableTun == true ? "Подключено · весь компьютер" : "Подключено") : "Не подключено";
+        ttStatus.Foreground = new SolidColorBrush(on ? Color.FromRgb(0xFF, 0x7A, 0x1A) : Color.FromRgb(0xA8, 0x9C, 0x9A));
+        ttDot.Fill = new SolidColorBrush(on ? Color.FromRgb(0x3D, 0xDC, 0x84) : Color.FromRgb(0x6E, 0x63, 0x62));
+        ttServer.Text = where.IsNotEmpty() ? $"Сервер: {where}" : "Сервер не выбран";
+        ttServer.Visibility = Visibility.Visible;
+        // запасная подсказка (если Windows не покажет нашу карточку) — тоже понятная
+        tbNotify.ToolTipText = $"FireVPN — {ttStatus.Text}" + (where.IsNotEmpty() ? $" · {where}" : "");
     }
 
     private async Task RefreshIcon()
