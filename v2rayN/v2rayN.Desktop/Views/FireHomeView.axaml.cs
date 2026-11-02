@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media.Immutable;
+using Avalonia.Media.Transformation;
 using ServiceLib.Services;
 using v2rayN.Desktop.Common;
 using Path = Avalonia.Controls.Shapes.Path;
@@ -924,6 +925,42 @@ public partial class FireHomeView : UserControl
     }
 
     #endregion Fire effects
+
+    #region Toast
+
+    private DispatcherTimer? _toastTimer;
+
+    /// <summary>
+    /// Огненное уведомление снизу экрана: всплывает и через несколько секунд гаснет (длиннее текст — дольше)
+    /// </summary>
+    public void ShowToast(string text)
+    {
+        text = FireCountries.Humanize(text);
+        txtToast.Text = text;
+        toast.IsVisible = true;
+        toast.Opacity = 1;
+        toast.RenderTransform = TransformOperations.Parse("translateY(0px)");
+
+        _toastTimer?.Stop();
+        _toastTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(Math.Clamp(2.5 + (text.Length * 0.04), 3, 7)) };
+        _toastTimer.Tick += (_, _) =>
+        {
+            _toastTimer?.Stop();
+            toast.Opacity = 0;
+            toast.RenderTransform = TransformOperations.Parse("translateY(12px)");
+            DispatcherTimer.RunOnce(() =>
+            {
+                if (toast.Opacity == 0)
+                {
+                    toast.IsVisible = false;
+                    toast.RenderTransform = TransformOperations.Parse("translateY(20px)");
+                }
+            }, TimeSpan.FromMilliseconds(320));
+        };
+        _toastTimer.Start();
+    }
+
+    #endregion Toast
 
     #region Update
 

@@ -62,4 +62,28 @@ public static class FireCountries
         }
         return sb.ToString().Trim();
     }
+
+    /// <summary>
+    /// «🇫🇮 Хельсинки» → «Хельсинки · Финляндия»
+    /// </summary>
+    public static string ServerLabel(string? remarks)
+    {
+        var name = StripFlags(remarks);
+        var country = CountryName(CountryCode(remarks));
+        return country.IsNotEmpty() && country != name ? $"{name} · {country}" : name;
+    }
+
+    // «[VLESS] 🇫🇮 Хельсинки(168***127:2096)» — так v2rayN сообщает о запуске сервера; человеку нужно только название
+    private static readonly System.Text.RegularExpressions.Regex ServerSummary =
+        new(@"^\[\w+\]\s+(?:\[\w+\])?(?<name>.+?)\([^()]*\)$");
+
+    /// <summary>
+    /// Текст уведомления для простого экрана FireVPN
+    /// </summary>
+    public static string Humanize(string text)
+    {
+        text = text.Trim();
+        var m = ServerSummary.Match(text);
+        return m.Success ? $"Сервер: {ServerLabel(m.Groups["name"].Value)}" : text;
+    }
 }

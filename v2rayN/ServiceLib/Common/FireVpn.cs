@@ -12,7 +12,7 @@ public static class FireVpn
     // сборка FireVPN (а не исходный v2rayN): отключает лишнее из v2rayN
     public const bool IsFireVpn = true;
 
-    public const string AppVersion = "1.0.3";
+    public const string AppVersion = "1.0.4";
     public const string SubName = "FireVPN";
     public const string Site = "https://fire-vpn.online";
     // у каждой системы свой latest.json и свой файл обновления

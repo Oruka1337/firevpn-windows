@@ -834,5 +834,48 @@
                 </StackPanel>
             </ScrollViewer>
         </Grid>
+
+        <!--  уведомление FireVPN: всплывает снизу и само гаснет (вместо уведомления v2rayN в углу)  -->
+        <Border
+            x:Name="toast"
+            MaxWidth="400"
+            Margin="18,0,18,22"
+            Padding="14,11"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Background="#F0231A1A"
+            BorderBrush="{StaticResource FireFill}"
+            BorderThickness="1.5"
+            BoxShadow="0 0 22 0 #8CFF5A14"
+            CornerRadius="14"
+            IsHitTestVisible="False"
+            IsVisible="False"
+            Opacity="0"
+            RenderTransform="translateY(20px)">
+            <Border.Transitions>
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+                    <TransformOperationsTransition
+                        Easing="CubicEaseOut"
+                        Property="RenderTransform"
+                        Duration="0:0:0.26" />
+                </Transitions>
+            </Border.Transitions>
+            <DockPanel>
+                <Image
+                    Width="20"
+                    Height="20"
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center"
+                    DockPanel.Dock="Left"
+                    Source="/Assets/firevpn_flame.png" />
+                <TextBlock
+                    x:Name="txtToast"
+                    VerticalAlignment="Center"
+                    FontSize="13"
+                    Foreground="White"
+                    TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

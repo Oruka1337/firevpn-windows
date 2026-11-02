@@ -929,7 +929,7 @@ public partial class FireHomeView : UserControl
     /// </summary>
     public void ShowToast(string text)
     {
-        text = Humanize(text);
+        text = FireCountries.Humanize(text);
         txtToast.Text = text;
         toast.Visibility = Visibility.Visible;
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
@@ -953,24 +953,6 @@ public partial class FireHomeView : UserControl
             toastShift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(12, TimeSpan.FromMilliseconds(300)));
         };
         _toastTimer.Start();
-    }
-
-    // «[VLESS] 🇫🇮 Хельсинки(168***127:2096)» — так v2rayN сообщает о запуске сервера; человеку нужно только название
-    private static readonly System.Text.RegularExpressions.Regex ServerSummary =
-        new(@"^\[\w+\]\s+(?:\[\w+\])?(?<name>.+?)\([^()]*\)$");
-
-    private static string Humanize(string text)
-    {
-        text = text.Trim();
-        var m = ServerSummary.Match(text);
-        if (!m.Success)
-        {
-            return text;
-        }
-        var remarks = m.Groups["name"].Value;
-        var name = FireFlags.StripFlags(remarks);
-        var country = FireFlags.CountryName(FireFlags.CountryCode(remarks));
-        return country.IsNotEmpty() && country != name ? $"Сервер: {name} · {country}" : $"Сервер: {name}";
     }
 
     #endregion Toast

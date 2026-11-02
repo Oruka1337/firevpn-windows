@@ -43,6 +43,12 @@ public partial class StatusBarView : ReactiveUserControl<StatusBarViewModel>
                 interaction.SetOutput(result);
             }).DisposeWith(disposables);
 
+            // FireVPN: вместо «[VLESS] FI Хельсинки(168***127:2096)» — статус и сервер по-человечески
+            ViewModel.WhenAnyValue(vm => vm.RunningServerDisplay, vm => vm.BlSystemProxySet, vm => vm.EnableTun)
+                .ObserveOn(RxSchedulers.MainThreadScheduler)
+                .Subscribe(async _ => await UpdateTrayTip())
+                .DisposeWith(disposables);
+
             ViewModel.DispatcherRefreshIconInteraction.RegisterHandler(interaction =>
             {
                 Dispatcher.UIThread.Post(RefreshIcon, DispatcherPriority.Default);
@@ -59,6 +65,38 @@ public partial class StatusBarView : ReactiveUserControl<StatusBarViewModel>
 
         // Because this view has not yet been initialized when DispatcherRefreshIconInteraction is first called.
         RefreshIcon();
+    }
+
+    private NativeMenuItem? _trayStatus;
+
+    /// <summary>
+    /// Подсказка у значка и первая строка его меню: «FireVPN — Подключено · Хельсинки · Финляндия»
+    /// </summary>
+    private async Task UpdateTrayTip()
+    {
+        var on = ViewModel?.BlSystemProxySet == true || ViewModel?.EnableTun == true;
+        var server = await ConfigHandler.GetDefaultServer(_config);
+        var where = server == null ? "" : FireCountries.ServerLabel(server.Remarks);
+        var status = on ? (ViewModel?.EnableTun == true ? "Подключено · весь компьютер" : "Подключено") : "Не подключено";
+
+        var icons = TrayIcon.GetIcons(Application.Current!);
+        if (icons == null || icons.Count == 0)
+        {
+            return;
+        }
+        var tray = icons[0];
+        tray.ToolTipText = $"FireVPN — {status}" + (where.IsNotEmpty() ? $"\nСервер: {where}" : "");
+
+        if (_trayStatus == null && tray.Menu != null)
+        {
+            _trayStatus = new NativeMenuItem { IsEnabled = false };
+            tray.Menu.Items.Insert(0, _trayStatus);
+            tray.Menu.Items.Insert(1, new NativeMenuItemSeparator());
+        }
+        if (_trayStatus != null)
+        {
+            _trayStatus.Header = (on ? "🟢 " : "⚪ ") + status + (where.IsNotEmpty() ? $" · {where}" : "");
+        }
     }
 
     private void RefreshIcon()

@@ -193,6 +193,12 @@ public partial class MainWindow : WindowBase<MainWindowViewModel>
 
     private async Task DelegateSnackMsg(string content)
     {
+        // FireVPN: на простом экране — своё огненное уведомление, в расширенном режиме — как в v2rayN
+        if (!_advancedMode && fireHome.IsVisible)
+        {
+            fireHome.ShowToast(content);
+            return;
+        }
         _manager?.Show(new Avalonia.Controls.Notifications.Notification(null, content, NotificationType.Information));
         await Task.CompletedTask;
     }

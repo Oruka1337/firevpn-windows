@@ -37,7 +37,7 @@
             <TrayIcon
                 Command="{Binding NotifyLeftClickCmd}"
                 Icon="/Assets/NotifyIcon1.ico"
-                ToolTipText="{Binding RunningServerToolTipText}">
+                ToolTipText="FireVPN">
                 <TrayIcon.Menu>
                     <NativeMenu>
                         <NativeMenuItem
